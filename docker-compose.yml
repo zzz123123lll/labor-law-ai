@@ -1,0 +1,28 @@
+services:
+  nginx:
+    image: nginx:alpine
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on: [backend]
+
+  backend:
+    build: ./fastapi-server
+    env_file: ./fastapi-server/.env
+    depends_on: [postgres, redis]
+
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: laborlaw
+      POSTGRES_USER: laborlaw
+      POSTGRES_PASSWORD: laborlaw
+    volumes: [pgdata:/var/lib/postgresql/data]
+    ports: ["5432:5432"]
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+volumes:
+  pgdata:
