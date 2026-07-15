@@ -57,8 +57,8 @@ async def _get_current_user(
 @router.post("/chat")
 async def chat(
     req: ChatRequest,
+    request: Request,
     current_user: User = Depends(_get_current_user),
-    request: Request = None,
 ):
     """SSE 流式 AI 对话。
 
@@ -70,9 +70,13 @@ async def chat(
     async with AsyncSessionLocal() as db:
         # ── 1. 获取或创建案件 ──
         if req.case_id:
+            try:
+                case_uuid = uuid.UUID(req.case_id)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="无效的 case_id 格式")
             result = await db.execute(
                 select(Case).where(
-                    Case.id == req.case_id,
+                    Case.id == case_uuid,
                     Case.user_id == current_user.id,
                 )
             )
@@ -250,9 +254,9 @@ async def _stream_agent_responses(
 
 
 def _error_result(error_msg: str):
-    """构造一个模拟 AgentResult 用于错误处理。"""
-    from types import SimpleNamespace
-    return SimpleNamespace(
+    """构造一个 AgentResult 用于错误处理。"""
+    from app.agents.base import AgentResult
+    return AgentResult(
         content=f"{error_msg}\n\n> 免责声明：本分析不替代律师正式法律意见",
         law_refs=[],
         msg_type="error",
