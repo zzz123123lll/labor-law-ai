@@ -162,6 +162,80 @@ async def test_chat_returns_form_when_profile_incomplete():
         await engine.dispose()
 
 
+@pytest.mark.asyncio
+async def test_chat_returns_agent_result():
+    """profile 完整时跳过表单采集，进入 Agent 路由分支。"""
+    # ── 创建内存 SQLite 数据库 ──
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+
+    # ── 创建测试用户 + 完整 profile 的 case ──
+    async with factory() as db:
+        user_id = uuid.uuid4()
+        user = User(id=user_id, wechat_openid="test_agent_result")
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+
+        case = Case(
+            user_id=user_id,
+            title="劳动纠纷",
+            profile={
+                "province": "广东",
+                "city": "深圳",
+                "hire_date": "2024-03",
+                "monthly_salary": "8000",
+            },
+        )
+        db.add(case)
+        await db.commit()
+        await db.refresh(case)
+        case_id = str(case.id)
+
+    token = create_access_token(str(user_id))
+    mock_user = User(id=user_id, wechat_openid="test_agent_result")
+
+    # 因 profile 完整会走到 agent_registry 访问，设空字典（mock 后 agent_names 为空，不会调用 get）
+    app.state.agent_registry = {}
+
+    app.dependency_overrides[_get_current_user] = lambda: mock_user
+    try:
+        with pytest.MonkeyPatch().context() as mp:
+            mp.setattr("app.api.consultation.AsyncSessionLocal", factory)
+            # IntentRouter.route 返回空列表 → 无 agent 执行，直接 done
+            mp.setattr(
+                "app.agents.router.IntentRouter.route",
+                classmethod(lambda cls, text: []),
+            )
+
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.post(
+                    "/api/consultation/chat",
+                    json={
+                        "message": "被辞退了怎么办",
+                        "case_id": case_id,
+                    },
+                    headers={"Authorization": f"Bearer {token}"},
+                )
+
+        assert resp.status_code == 200
+        assert resp.headers.get("content-type", "").startswith("text/event-stream")
+
+        events = _parse_sse(resp.text)
+        assert len(events) >= 1
+        # 不应有 form_collect 事件
+        for event in events:
+            assert event["type"] != "form_collect", "profile 完整时不应返回表单采集"
+        # 最后一个事件应为 done
+        assert events[-1]["type"] == "done"
+    finally:
+        app.dependency_overrides.pop(_get_current_user, None)
+        await engine.dispose()
+
+
 # ─── TODO（后续连接真实数据库后补充） ─────────────────────────────────
 """
 以下功能测试需要完整的数据库和 AI Agent 环境，当前无法完整模拟：
