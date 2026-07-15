@@ -26,7 +26,7 @@ class AgentResult:
 
 
 class BaseAgent(ABC):
-    """AI Agent 基类。每个子类实现 _build_prompt 定义自己的 Prompt。"""
+    """AI Agent 基类。每个子类实现 build_system_prompt 定义自己的 Prompt。"""
 
     name: str = "base"
 
@@ -70,6 +70,12 @@ class BaseAgent(ABC):
                     "max_tokens": 4096,
                 },
             )
+        if resp.status_code >= 400:
+            return AgentResult(
+                content=f"AI 服务暂时不可用（HTTP {resp.status_code}），请稍后重试。\n\n> 免责声明：本分析不替代律师正式法律意见。",
+                msg_type="error",
+            )
+
         data = resp.json()
 
         if "choices" not in data:
