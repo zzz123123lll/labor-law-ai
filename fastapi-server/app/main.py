@@ -12,7 +12,15 @@ from app.api.cases import router as cases_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """启动/关闭时执行。"""
-    # 启动时加载法律库到内存
+    from pathlib import Path
+    from app.legal_engine.law_store import law_store
+    from app.legal_engine.case_store import case_store
+
+    data_dir = Path(__file__).parent / "legal_engine" / "data"
+    law_store.load(str(data_dir))
+    case_store.load(str(data_dir))
+    app.state.law_store = law_store
+    app.state.case_store = case_store
     yield
     # 关闭时清理
 
