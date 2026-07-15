@@ -2,30 +2,35 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "劳动法智能维权AI",
-  description: "劳动法智能维权助手",
+  title: "劳动法维权AI",
+  description: "劳动法智能维权助手——帮你分析劳动问题，计算赔偿，生成文书",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN">
-      <body className="bg-gray-50 min-h-screen">
-        <main className="max-w-lg mx-auto pb-16">{children}</main>
-        <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white border-t flex justify-around py-2 text-xs text-gray-500 z-50">
-          <a href="/" className="flex flex-col items-center">
-            <span className="text-lg">🏠</span>首页
+      <body className="min-h-screen">
+        <main className="mx-auto max-w-[640px] pb-14">{children}</main>
+        <nav className="tab-bar">
+          <a href="/" className="tab-item active">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+            首页
           </a>
-          <a href="/consultation" className="flex flex-col items-center">
-            <span className="text-lg">💬</span>AI咨询
+          <a href="/consultation" className="tab-item">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            咨询
           </a>
-          <a href="/toolbox" className="flex flex-col items-center">
-            <span className="text-lg">🧰</span>工具箱
+          <a href="/toolbox" className="tab-item">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            工具
           </a>
-          <a href="/cases" className="flex flex-col items-center">
-            <span className="text-lg">📋</span>案件
+          <a href="/cases" className="tab-item">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+            案件
           </a>
-          <a href="/profile" className="flex flex-col items-center">
-            <span className="text-lg">👤</span>我的
+          <a href="/profile" className="tab-item">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            我的
           </a>
         </nav>
       </body>

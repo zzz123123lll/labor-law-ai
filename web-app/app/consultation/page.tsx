@@ -12,7 +12,7 @@ export default function ConsultationPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "你好！我是劳动法智能维权助手。请描述你遇到的劳动问题，我会帮你分析。",
+      content: "你好，我是劳动法维权助手。\n\n请告诉我你遇到了什么问题？",
     },
   ]);
   const [input, setInput] = useState("");
@@ -31,7 +31,6 @@ export default function ConsultationPage() {
     setLoading(true);
 
     try {
-      // SSE 流式接收后端分析
       const token = localStorage.getItem("access_token") || "";
       const resp = await fetch("http://localhost:8000/api/consultation/chat", {
         method: "POST",
@@ -63,7 +62,6 @@ export default function ConsultationPage() {
                     { role: "assistant", content: data.content, msgType: data.agent },
                   ]);
                 } else if (data.type === "form_collect") {
-                  // 信息采集表单——简单提示
                   setMessages((prev) => [
                     ...prev,
                     {
@@ -77,10 +75,13 @@ export default function ConsultationPage() {
           }
         }
       }
-    } catch (err) {
+    } catch {
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "抱歉，连接后端服务失败。请确保后端已启动。\n\n> ⚠️ 本分析不替代律师正式法律意见" },
+        {
+          role: "assistant",
+          content: "连接服务失败。请确认后端已启动。\n\n> 本分析不替代律师正式法律意见",
+        },
       ]);
     } finally {
       setLoading(false);
@@ -88,41 +89,64 @@ export default function ConsultationPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen max-w-lg mx-auto">
-      <header className="bg-white px-4 py-3 border-b text-center font-semibold">
-        AI 智能咨询
+    <div className="flex flex-col h-screen max-w-[640px] mx-auto">
+      {/* 顶栏 */}
+      <header className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+        <a href="/" className="text-[var(--color-text-muted)] no-underline hover:text-[var(--color-accent)]">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15,18 9,12 15,6"/></svg>
+        </a>
+        <span className="text-sm font-medium">AI 咨询</span>
+        <span className="w-5" />
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`max-w-[85%] rounded-xl px-4 py-2 text-sm whitespace-pre-wrap ${
-              msg.role === "user"
-                ? "bg-blue-600 text-white ml-auto"
-                : msg.role === "system"
-                ? "bg-yellow-50 border border-yellow-200 text-yellow-800"
-                : "bg-white border text-gray-800"
-            }`}
-          >
-            {msg.msgType && msg.role === "assistant" && (
-              <div className="text-xs text-gray-400 mb-1">[{msg.msgType}]</div>
-            )}
-            {msg.content}
-          </div>
-        ))}
+      {/* 消息区 */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ background: "var(--color-bg)" }}>
+        {messages.map((msg, i) =>
+          msg.role === "user" ? (
+            <div key={i} className="msg-user">{msg.content}</div>
+          ) : msg.role === "system" ? (
+            <div key={i} className="text-center">
+              <span className="inline-block text-xs bg-[#F3F4F6] text-[var(--color-text-muted)] px-3 py-1.5 rounded-sm">
+                {msg.content}
+              </span>
+            </div>
+          ) : (
+            <div key={i}>
+              {msg.msgType && (
+                <div className="text-[10px] text-[var(--color-text-muted)] ml-1 mb-1 tracking-wide">
+                  {msg.msgType === "case_analysis" ? "案件分析" :
+                   msg.msgType === "violation_detect" ? "违法识别" :
+                   msg.msgType === "compensation" ? "赔偿计算" :
+                   msg.msgType === "strategy" ? "维权路线" :
+                   msg.msgType === "arbitration" ? "仲裁指导" :
+                   msg.msgType === "document_draft" ? "文书起草" : msg.msgType}
+                </div>
+              )}
+              <div
+                className="msg-ai"
+                dangerouslySetInnerHTML={{ __html: msg.content
+                  .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                  .replace(/^- (.*)/gm, "<span style='display:block;padding-left:8px;margin:2px 0'>· $1</span>")
+                  .replace(/\n/g, "<br/>")
+                }}
+              />
+            </div>
+          )
+        )}
         {loading && (
-          <div className="bg-white border rounded-xl px-4 py-2 text-sm text-gray-400">
-            AI分析中...
+          <div className="flex items-center gap-2 px-1">
+            <span className="w-2 h-2 rounded-full bg-[var(--color-accent)] animate-pulse" />
+            <span className="text-xs text-[var(--color-text-muted)]">分析中...</span>
           </div>
         )}
         <div ref={chatEndRef} />
       </div>
 
-      <div className="bg-white border-t px-3 py-2 flex gap-2">
+      {/* 输入栏 */}
+      <div className="bg-[var(--color-surface)] border-t border-[var(--color-border)] px-3 py-2.5 flex gap-2 items-center">
         <input
           type="text"
-          className="flex-1 border rounded-full px-4 py-2 text-sm focus:outline-none focus:border-blue-400"
+          className="input-field flex-1 rounded-full"
           placeholder="描述你的劳动问题..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -131,9 +155,9 @@ export default function ConsultationPage() {
         <button
           onClick={sendMessage}
           disabled={loading}
-          className="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center disabled:opacity-50"
+          className="btn-primary rounded-full w-9 h-9 flex items-center justify-center p-0 disabled:opacity-30"
         >
-          ➤
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/></svg>
         </button>
       </div>
     </div>
