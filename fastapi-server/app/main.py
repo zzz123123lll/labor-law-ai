@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.api.auth import router as auth_router
 from app.api.cases import router as cases_router
+from app.api.consultation import router as consultation_router
 
 
 @asynccontextmanager
@@ -15,12 +16,17 @@ async def lifespan(app: FastAPI):
     from pathlib import Path
     from app.legal_engine.law_store import law_store
     from app.legal_engine.case_store import case_store
+    from app.agents.registry import AgentRegistry
 
     data_dir = Path(__file__).parent / "legal_engine" / "data"
     law_store.load(str(data_dir))
     case_store.load(str(data_dir))
     app.state.law_store = law_store
     app.state.case_store = case_store
+
+    # 初始化 AgentRegistry
+    app.state.agent_registry = AgentRegistry(law_store, case_store)
+
     yield
     # 关闭时清理
 
@@ -41,6 +47,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(cases_router)
+app.include_router(consultation_router)
 
 
 @app.get("/api/health")
