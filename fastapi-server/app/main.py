@@ -8,6 +8,10 @@ from app.config import settings
 from app.api.auth import router as auth_router
 from app.api.cases import router as cases_router
 from app.api.consultation import router as consultation_router
+from app.api.contract_review import router as contract_review_router
+from app.api.evidence import router as evidence_router
+from app.api.compensation import router as compensation_router
+from app.api.document_gen import router as document_gen_router
 
 
 @asynccontextmanager
@@ -48,6 +52,10 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(cases_router)
 app.include_router(consultation_router)
+app.include_router(contract_review_router)
+app.include_router(evidence_router)
+app.include_router(compensation_router)
+app.include_router(document_gen_router)
 
 
 @app.get("/api/health")
