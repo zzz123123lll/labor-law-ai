@@ -22,7 +22,11 @@ async def get_current_user(
     """从 JWT 中解析当前用户。"""
     try:
         payload = decode_token(credentials.credentials)
+        if payload.get("type") == "refresh":
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="请使用 access token")
         user_id = payload["sub"]
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="无效的认证令牌")
 

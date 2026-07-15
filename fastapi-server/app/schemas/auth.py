@@ -11,12 +11,6 @@ class BindPhoneRequest(BaseModel):
     sms_code: str
 
 
-class TokenResponse(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-
-
 class UserInfo(BaseModel):
     id: str
     nickname: str | None
@@ -27,3 +21,10 @@ class UserInfo(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    user: UserInfo

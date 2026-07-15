@@ -1,5 +1,7 @@
 """安全工具：JWT 签发/验证，手机号加密。"""
 from datetime import datetime, timedelta, timezone
+import base64
+import hashlib
 
 from jose import jwt
 from passlib.context import CryptContext
@@ -30,3 +32,16 @@ def create_refresh_token(user_id: str) -> str:
 
 def decode_token(token: str) -> dict:
     return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+
+
+def _get_fernet() -> Fernet:
+    key = base64.urlsafe_b64encode(hashlib.sha256(settings.JWT_SECRET_KEY.encode()).digest())
+    return Fernet(key)
+
+
+def encrypt_phone(phone: str) -> str:
+    return _get_fernet().encrypt(phone.encode()).decode()
+
+
+def decrypt_phone(encrypted: str) -> str:
+    return _get_fernet().decrypt(encrypted.encode()).decode()

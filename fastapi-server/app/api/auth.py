@@ -9,7 +9,7 @@ from app.models.user import User
 from app.schemas.auth import (
     WechatLoginRequest, BindPhoneRequest, TokenResponse, UserInfo,
 )
-from app.utils.security import create_access_token, create_refresh_token
+from app.utils.security import create_access_token, create_refresh_token, encrypt_phone
 from app.config import settings
 
 router = APIRouter(prefix="/api/auth", tags=["认证"])
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/auth", tags=["认证"])
 async def wechat_login(req: WechatLoginRequest, db: AsyncSession = Depends(get_db)):
     """微信扫码登录，code 换取 openid。"""
     # 调微信开放平台 API
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=10.0) as client:
         resp = await client.get(
             "https://api.weixin.qq.com/sns/oauth2/access_token",
             params={
@@ -46,7 +46,11 @@ async def wechat_login(req: WechatLoginRequest, db: AsyncSession = Depends(get_d
 
     access_token = create_access_token(str(user.id))
     refresh_token = create_refresh_token(str(user.id))
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=UserInfo.model_validate(user),
+    )
 
 
 @router.post("/bind-phone")
@@ -57,7 +61,7 @@ async def bind_phone(
 ):
     """绑定手机号（首次登录后强制调用）。"""
     # TODO: 验证短信验证码
-    current_user.phone = req.phone  # 生产环境需 AES 加密
+    current_user.phone = encrypt_phone(req.phone)
     await db.commit()
     return {"success": True}
 

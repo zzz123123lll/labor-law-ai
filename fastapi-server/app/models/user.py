@@ -13,7 +13,7 @@ class User(Base, TimestampMixin):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     wechat_openid: Mapped[str] = mapped_column(String(64), unique=True, index=True)
-    phone: Mapped[str | None] = mapped_column(String(11))  # AES-256 加密存储
+    phone: Mapped[str | None] = mapped_column(String(256))  # AES-256 加密存储
     nickname: Mapped[str | None] = mapped_column(String(64))
     avatar_url: Mapped[str | None] = mapped_column(String(512))
     role: Mapped[str] = mapped_column(String(16), default="user")  # user | admin
