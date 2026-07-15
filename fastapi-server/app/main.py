@@ -13,6 +13,7 @@ from app.api.evidence import router as evidence_router
 from app.api.compensation import router as compensation_router
 from app.api.document_gen import router as document_gen_router
 from app.api.payment import router as payment_router
+from app.api.admin import router as admin_router
 
 
 @asynccontextmanager
@@ -58,6 +59,7 @@ app.include_router(evidence_router)
 app.include_router(compensation_router)
 app.include_router(document_gen_router)
 app.include_router(payment_router)
+app.include_router(admin_router)
 
 
 @app.get("/api/health")
