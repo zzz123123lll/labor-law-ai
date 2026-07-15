@@ -9,7 +9,7 @@ from app.models.user import User
 from app.schemas.auth import (
     WechatLoginRequest, BindPhoneRequest, TokenResponse, UserInfo,
 )
-from app.utils.security import create_access_token, create_refresh_token, encrypt_phone
+from app.utils.security import create_access_token, create_refresh_token, encrypt_phone, decrypt_phone
 from app.config import settings
 
 router = APIRouter(prefix="/api/auth", tags=["认证"])
@@ -46,10 +46,13 @@ async def wechat_login(req: WechatLoginRequest, db: AsyncSession = Depends(get_d
 
     access_token = create_access_token(str(user.id))
     refresh_token = create_refresh_token(str(user.id))
+    user_data = UserInfo.model_validate(user)
+    if user.phone:
+        user_data.phone = decrypt_phone(user.phone)
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
-        user=UserInfo.model_validate(user),
+        user=user_data,
     )
 
 
@@ -69,4 +72,7 @@ async def bind_phone(
 @router.get("/me", response_model=UserInfo)
 async def get_me(current_user: User = Depends(get_current_user)):
     """获取当前用户信息。"""
-    return UserInfo.model_validate(current_user)
+    user_data = UserInfo.model_validate(current_user)
+    if current_user.phone:
+        user_data.phone = decrypt_phone(current_user.phone)
+    return user_data
