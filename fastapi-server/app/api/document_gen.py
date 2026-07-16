@@ -1,8 +1,11 @@
-"""文书生成 API：AI 起草法律文书 + 下载。"""
+"""文书生成 API：AI 起草法律文书 + Markdown/PDF 下载。"""
 import uuid
 import logging
+import tempfile
+import os
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import FileResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy import select
 
@@ -166,3 +169,99 @@ async def download_document(
             status=doc.status,
             created_at=doc.created_at.isoformat(),
         )
+
+
+@router.get("/download/{id}/pdf")
+async def download_pdf(
+    id: str,
+    current_user: User = Depends(_get_current_user),
+):
+    """下载文书的 PDF 版本（格式化排版 + 页眉页脚）。"""
+    try:
+        doc_uuid = uuid.UUID(id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="无效的 id 格式")
+
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(GeneratedDocument).where(GeneratedDocument.id == doc_uuid)
+        )
+        doc = result.scalar_one_or_none()
+        if doc is None:
+            raise HTTPException(status_code=404, detail="文书不存在")
+
+    try:
+        pdf_path = _markdown_to_pdf(doc.title, doc.content)
+    except Exception as e:
+        logger.exception("PDF 生成失败")
+        raise HTTPException(status_code=500, detail=f"PDF 生成失败: {str(e)}。请使用 Markdown 下载代替。")
+
+    return FileResponse(
+        pdf_path,
+        media_type="application/pdf",
+        filename=f"{doc.title}.pdf",
+        background=None,
+    )
+
+
+def _markdown_to_pdf(title: str, markdown_content: str) -> str:
+    """将 Markdown 文书转换为格式化 PDF。
+
+    尝试顺序：WeasyPrint（需系统 GTK）→ xhtml2pdf（纯 Python）。
+    均不可用时抛出异常，建议使用 Markdown 下载。
+    """
+    import markdown as md_lib
+
+    html_body = md_lib.markdown(markdown_content, extensions=["extra", "tables"])
+
+    HTML_TEMPLATE = """<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="utf-8">
+<style>
+  body {{ font-family: "PingFang SC","Microsoft YaHei","SimSun",sans-serif; font-size: 12pt; line-height: 2; color: #1A1A1A; padding: 2cm; }}
+  h1 {{ font-size: 18pt; text-align: center; border-bottom: 2px solid #1E40AF; padding-bottom: 12pt; }}
+  h2 {{ font-size: 15pt; margin-top: 24pt; color: #1E40AF; }}
+  h3 {{ font-size: 13pt; }}
+  table {{ width: 100%; border-collapse: collapse; margin: 12pt 0; }}
+  th, td {{ border: 1px solid #E5E7EB; padding: 8pt; text-align: left; font-size: 11pt; }}
+  th {{ background: #F3F4F6; }}
+  blockquote {{ border-left: 3px solid #1E40AF; padding-left: 12pt; color: #666; }}
+  .disclaimer {{ font-size: 9pt; color: #999; border-top: 1px solid #E5E7EB; margin-top: 36pt; padding-top: 12pt; }}
+</style></head>
+<body>{body}<div class="disclaimer">本文书由 AI 辅助生成，不替代律师正式法律意见。生成时间：{now}</div></body>
+</html>"""
+
+    html = HTML_TEMPLATE.format(
+        title=title, body=html_body, now=_now_str(),
+    )
+
+    # 尝试 1: WeasyPrint
+    try:
+        from weasyprint import HTML as WHTML
+        tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+        WHTML(string=html).write_pdf(tmp.name)
+        tmp.close()
+        return tmp.name
+    except (OSError, ImportError):
+        pass
+
+    # 尝试 2: xhtml2pdf
+    try:
+        from xhtml2pdf import pisa
+        tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+        with open(tmp.name, "wb") as f:
+            pisa.CreatePDF(html, dest=f)
+        return tmp.name
+    except ImportError:
+        pass
+
+    raise RuntimeError(
+        "PDF 生成需要安装 WeasyPrint（Linux/Mac）或 xhtml2pdf（跨平台）。"
+        "请运行: pip install xhtml2pdf"
+    )
+
+
+def _now_str() -> str:
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
