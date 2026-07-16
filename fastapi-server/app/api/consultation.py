@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy import select
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.database import AsyncSessionLocal, get_db
 from app.config import settings
@@ -23,8 +25,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/consultation", tags=["AI咨询"])
 security = HTTPBearer()
 
+# AI 咨询是最贵重的接口，单独限制 10次/分钟
+ai_limiter = Limiter(key_func=get_remote_address)
+
 
 @router.post("/chat")
+@ai_limiter.limit("10/minute")
 async def chat(
     req: ChatRequest,
     request: Request,
@@ -63,8 +69,9 @@ async def chat(
             if not case:
                 raise HTTPException(404, "案件不存在")
         else:
-            case = Case(user_id=user.id, title="新案件")
+            case = Case(user_id=uuid_lib.UUID(user_id) if isinstance(user_id, str) else user_id, title="新案件")
             db.add(case)
+            await db.flush()
 
         # 保存用户消息
         user_msg = CaseMessage(

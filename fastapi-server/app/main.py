@@ -2,8 +2,12 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from app.config import settings
 from app.database import engine
@@ -19,15 +23,19 @@ from app.api.document_gen import router as document_gen_router
 from app.api.payment import router as payment_router
 from app.api.admin import router as admin_router
 
+# 速率限制器（内存存储，生产环境建议换 Redis）
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["30/minute", "200/hour"],
+)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """启动/关闭时执行。"""
-    # 数据库表自动创建
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    # 加载法律库
     from app.legal_engine.law_store import law_store
     from app.legal_engine.case_store import case_store
     from app.agents.registry import AgentRegistry
@@ -41,7 +49,6 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # 关闭引擎
     await engine.dispose()
 
 
@@ -51,9 +58,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

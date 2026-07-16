@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     # 应用
     APP_NAME: str = "劳动法智能维权AI"
     DEBUG: bool = False
+    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8000"]
 
     # 数据库
     DATABASE_URL: str = "postgresql+asyncpg://laborlaw:laborlaw@postgres:5432/laborlaw"

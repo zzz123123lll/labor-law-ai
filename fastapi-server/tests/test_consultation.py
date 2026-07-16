@@ -63,7 +63,7 @@ async def test_chat_creates_case():
 
     try:
         with pytest.MonkeyPatch().context() as mp:
-            mp.setattr("app.database.AsyncSessionLocal", factory)
+            mp.setattr("app.api.consultation.AsyncSessionLocal", factory)
 
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -105,7 +105,7 @@ async def test_chat_returns_form_when_profile_incomplete():
 
     try:
         with pytest.MonkeyPatch().context() as mp:
-            mp.setattr("app.database.AsyncSessionLocal", factory)
+            mp.setattr("app.api.consultation.AsyncSessionLocal", factory)
 
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -151,7 +151,7 @@ async def test_chat_returns_agent_result():
 
     try:
         with pytest.MonkeyPatch().context() as mp:
-            mp.setattr("app.database.AsyncSessionLocal", factory)
+            mp.setattr("app.api.consultation.AsyncSessionLocal", factory)
             mp.setattr("app.agents.router.IntentRouter.route", classmethod(lambda cls, text: []))
 
             transport = ASGITransport(app=app)

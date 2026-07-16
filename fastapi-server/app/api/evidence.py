@@ -22,9 +22,18 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/evidence", tags=["证据分析"])
 security = HTTPBearer()
 
-# 上传目录
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# 安全限制
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+ALLOWED_TYPES = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".pdf", ".doc", ".docx"}
+
+FILE_TYPE_LABELS: dict[str, str] = {
+    ".png": "image", ".jpg": "image", ".jpeg": "image", ".gif": "image",
+    ".bmp": "image", ".webp": "image", ".pdf": "pdf",
+    ".doc": "document", ".docx": "document",
+}
 
 
 async def _get_current_user(
@@ -67,9 +76,23 @@ async def _ocr_file(file_path: str) -> str:
         return f"[OCR 失败: {str(e)}]"
 
 
+def _validate_file(file: UploadFile):
+    """验证文件类型和大小。"""
+    ext = os.path.splitext(file.filename or "file.bin")[1].lower()
+    if ext not in ALLOWED_TYPES:
+        raise HTTPException(status_code=400, detail=f"不支持的文件类型: {ext}。允许: {', '.join(sorted(ALLOWED_TYPES))}")
+
+    # 检查文件大小（读取到内存验证——UploadFile 无 size 属性但可以读前几个字节）
+    # fastapi 的 UploadFile 在完整接收后可通过 .size 获取
+    if hasattr(file, "size") and file.size and file.size > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail=f"文件过大。最大允许 10MB，当前 {file.size / 1024 / 1024:.1f}MB")
+
+
 async def _save_upload(file: UploadFile) -> tuple[str, str]:
     """保存上传文件，返回 (file_url, file_path)。"""
-    ext = os.path.splitext(file.filename or "file")[1] or ".bin"
+    ext = os.path.splitext(file.filename or "file")[1].lower()
+    if ext not in ALLOWED_TYPES:
+        ext = ".bin"
     filename = f"{uuid.uuid4()}{ext}"
     filepath = os.path.join(UPLOAD_DIR, filename)
     async with aiofiles.open(filepath, 'wb') as f:
@@ -96,6 +119,7 @@ async def upload_evidence(
     current_user: User = Depends(_get_current_user),
 ):
     """上传证据文件，验证案件归属，OCR 提取文本。"""
+    _validate_file(file)
     try:
         case_uuid = uuid.UUID(case_id)
     except ValueError:
