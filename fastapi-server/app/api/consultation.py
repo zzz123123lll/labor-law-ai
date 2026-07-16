@@ -45,7 +45,7 @@ async def chat(
         raise HTTPException(401, "无效的认证令牌")
 
     async with AsyncSessionLocal() as db:
-        user_result = await db.execute(select(User).where(User.id == user_id))
+        user_result = await db.execute(select(User).where(User.id == uuid_lib.UUID(user_id)))
         user = user_result.scalar_one_or_none()
         if not user:
             raise HTTPException(401, "用户不存在")
@@ -109,6 +109,14 @@ async def chat(
 @router.get("/{case_id}/history")
 async def get_history(case_id: str, request: Request):
     """获取案件历史消息。"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    if not token:
+        raise HTTPException(401, "未提供认证令牌")
+    try:
+        payload = decode_token(token)
+    except Exception:
+        raise HTTPException(401, "无效的认证令牌")
+
     async with AsyncSessionLocal() as db:
         result = await db.execute(
             select(CaseMessage)

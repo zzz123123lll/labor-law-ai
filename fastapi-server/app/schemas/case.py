@@ -1,7 +1,7 @@
 """案件相关 Pydantic 模型。"""
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class CaseCreate(BaseModel):
@@ -21,8 +21,8 @@ class CaseSummary(BaseModel):
     risk_level: str | None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True)
 
 
 class CaseDetail(BaseModel):
@@ -38,5 +38,5 @@ class CaseDetail(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True)

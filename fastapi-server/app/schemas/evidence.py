@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class EvidenceUploadResponse(BaseModel):
@@ -8,8 +8,8 @@ class EvidenceUploadResponse(BaseModel):
     ocr_text: str | None
     created_at: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True)
 
 
 class EvidenceListResponse(BaseModel):
@@ -20,5 +20,5 @@ class EvidenceListResponse(BaseModel):
     analysis: dict | None
     created_at: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True)

@@ -1,5 +1,5 @@
 """认证相关 Pydantic 模型。"""
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class WechatLoginRequest(BaseModel):
@@ -19,8 +19,8 @@ class UserInfo(BaseModel):
     role: str
     is_vip: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True)
 
 
 class TokenResponse(BaseModel):

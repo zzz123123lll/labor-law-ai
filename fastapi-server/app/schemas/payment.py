@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 
@@ -18,8 +18,8 @@ class OrderResponse(BaseModel):
     qr_code_url: str | None = None  # 微信支付二维码
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True)
 
 
 class SubscriptionResponse(BaseModel):
@@ -29,5 +29,5 @@ class SubscriptionResponse(BaseModel):
     start_at: datetime | None
     end_at: datetime | None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True)
