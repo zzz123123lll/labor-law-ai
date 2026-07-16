@@ -1,8 +1,21 @@
 # 劳动法智能维权 AI Agent
 
-面向普通劳动者的 AI 法律维权工具。覆盖从"遇到劳动问题"到"完成仲裁文书"的全流程。
+[![MIT License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue)](https://python.org)
+[![GitHub stars](https://img.shields.io/github/stars/zzz123123lll/labor-law-ai)](https://github.com/zzz123123lll/labor-law-ai/stargazers)
+[![Last commit](https://img.shields.io/github/last-commit/zzz123123lll/labor-law-ai)](https://github.com/zzz123123lll/labor-law-ai/commits/master)
 
-> **⚡ 接入你自己的 AI 即可使用** — [如何配置 AI 模型](./HOW_TO_CONFIGURE_AI.md)
+面向普通劳动者的 AI 法律维权工具。**输入你的劳动问题，AI 自动分析违法、计算赔偿、生成仲裁文书。** 覆盖从"遇到劳动问题"到"完成仲裁文书"的全流程。
+
+> **⚡ 接入你自己的 AI 即可使用** — 支持 DeepSeek / 通义千问 / 智谱GLM / Moonshot / GPT-4o / 本地 Ollama / 任意 OpenAI 兼容接口。[配置指南 →](./HOW_TO_CONFIGURE_AI.md)
+
+## 预览
+
+| 首页 | AI 咨询 | 赔偿计算 |
+|------|---------|----------|
+| ![首页](docs/images/homepage.png) | ![咨询](docs/images/consultation.png) | ![赔偿](docs/images/compensation.png) |
+
+---
 
 ## 特点
 
