@@ -92,16 +92,39 @@ class BaseAgent(ABC):
         content = result.content.strip()
         content += "\n\n---\n\n> ⚠️ 本分析基于公开法律法规，不替代律师正式法律意见。涉及重大权益请咨询专业律师。"
 
-        # 5. 提取引用的法条
-        law_refs = [
-            {"law": la.law, "article": la.article, "content": la.content[:100]}
-            for la in laws
-        ]
+        # 5. 提取实际引用的法条（只保留 LLM 回复中真正提到的，不把搜索到的全塞进去）
+        law_refs = self._match_cited_laws(result.content, laws)
 
         # 6. 提取结构化数据（不依赖 LLM function calling——对任意模型有效）
         structured = self._extract_structured(result.content)
 
         return AgentResult(content=content, law_refs=law_refs, structured=structured)
+
+    @staticmethod
+    def _match_cited_laws(response_text: str, searched_laws: list[LawArticle]) -> list[dict]:
+        """只返回 LLM 回复中实际引用到的法条，避免塞无关条文给前端。"""
+        cited = []
+        for la in searched_laws:
+            # 匹配 "《劳动法》第四十七条" 或 "劳动合同法第47条" 等引用格式
+            law_short = la.law.replace("中华人民共和国", "").replace("劳动法", "").replace("合同法", "")
+            patterns = [
+                f"《{la.law}》\\s*第\\s*{la.article.replace('第','').replace('条','')}\\s*条",
+                f"{la.law}\\s*第\\s*{la.article.replace('第','').replace('条','')}\\s*条",
+                la.article,
+            ]
+            for pat in patterns:
+                if re.search(pat, response_text):
+                    cited.append({
+                        "law": la.law,
+                        "article": la.article,
+                        "content": la.content[:100],
+                    })
+                    break
+        # 兜底：如果一个都没匹配到，返回前 5 条（避免前端空引用）
+        return cited[:10] if cited else [
+            {"law": la.law, "article": la.article, "content": la.content[:100]}
+            for la in searched_laws[:5]
+        ]
 
     def _build_user_message(self, ctx: AgentContext) -> str:
         parts = []

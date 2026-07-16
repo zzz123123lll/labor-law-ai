@@ -25,7 +25,7 @@ class IntentRouter:
 
     @classmethod
     def route(cls, text: str) -> list[str]:
-        """返回应执行的 agent 名称列表，按优先级排序。"""
+        """返回应执行的 agent 名称列表，按优先级排序。case_analysis 始终首先执行。"""
         matched = []
         for agent_name, keywords in ROUTER_RULES.items():
             for kw in keywords:
@@ -34,11 +34,13 @@ class IntentRouter:
                     break
 
         if not matched:
-            return ["case_analysis"]  # 默认走案件分析
+            return ["case_analysis"]
 
-        # 按级联顺序排列
-        ordered = [a for a in cls._CASCADE_ORDER if a in matched]
-        # 追加不在级联中的
+        # case_analysis 始终排第一（提供案件全貌，供后续 Agent 参考）
+        ordered = []
+        if "case_analysis" not in matched:
+            ordered = ["case_analysis"]
+        ordered += [a for a in cls._CASCADE_ORDER if a in matched]
         for a in matched:
             if a not in ordered:
                 ordered.append(a)
