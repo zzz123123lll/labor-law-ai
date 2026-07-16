@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Message {
   role: "user" | "assistant" | "system";
@@ -9,6 +10,7 @@ interface Message {
 }
 
 export default function ConsultationPage() {
+  const { user, loading: authLoading } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -99,6 +101,27 @@ export default function ConsultationPage() {
         <span className="w-5" />
       </header>
 
+      {/* 未登录时显示登录提示 */}
+      {authLoading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <span className="w-2 h-2 rounded-full bg-[var(--color-accent)] animate-pulse" />
+        </div>
+      ) : !user ? (
+        <div className="flex-1 flex flex-col items-center justify-center px-8 text-center" style={{ background: "var(--color-bg)" }}>
+          <div className="w-16 h-16 rounded-full bg-[var(--color-bg)] mb-4 flex items-center justify-center">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <h2 className="text-sm font-medium mb-1">请先登录</h2>
+          <p className="text-xs text-[var(--color-text-muted)] mb-4">AI 智能咨询需要登录后才能使用</p>
+          <a
+            href="/profile"
+            className="btn-primary no-underline text-sm inline-block px-8"
+          >
+            去登录
+          </a>
+        </div>
+      ) : (
+        <>
       {/* 消息区 */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ background: "var(--color-bg)" }}>
         {messages.map((msg, i) =>
@@ -160,6 +183,8 @@ export default function ConsultationPage() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/></svg>
         </button>
       </div>
+        </>
+      )}
     </div>
   );
 }

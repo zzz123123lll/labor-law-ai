@@ -6,7 +6,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy import select
+from sqlalchemy import select, func
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
@@ -55,6 +55,26 @@ async def chat(
         user = user_result.scalar_one_or_none()
         if not user:
             raise HTTPException(401, "用户不存在")
+
+        # 免费版限制：每天 N 次 AI 咨询
+        if not user.is_vip:
+            from datetime import datetime, timezone, timedelta
+            today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+            cnt_result = await db.execute(
+                select(func.count(CaseMessage.id))
+                .join(Case)
+                .where(
+                    Case.user_id == user.id,
+                    CaseMessage.role == "user",
+                    CaseMessage.created_at >= today,
+                )
+            )
+            daily_count = cnt_result.scalar() or 0
+            if daily_count >= settings.FREE_DAILY_CHAT_LIMIT:
+                raise HTTPException(
+                    429,
+                    detail=f"免费版每日 {settings.FREE_DAILY_CHAT_LIMIT} 次 AI 咨询已达上限。升级专业版即可无限使用。",
+                )
 
         # 获取或创建案件
         if req.case_id:

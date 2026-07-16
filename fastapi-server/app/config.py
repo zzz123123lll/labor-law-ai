@@ -1,5 +1,5 @@
 """应用配置，所有环境变量统一管理。"""
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -57,8 +57,7 @@ class Settings(BaseSettings):
     PRO_MAX_CASES: int = 20
     PRO_MONTHLY_CONTRACT_REVIEWS: int = 10
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env")
 
 
 settings = Settings()
