@@ -1,18 +1,14 @@
-"""AI 咨询对话 API（核心 SSE 流式接口）。
-
-由于 get_db 尚未实现，当前在模块内创建临时数据库引擎与会话工厂。
-后续 Task 连接主数据库路由后可迁移至 app.state 统一管理。
-"""
+"""AI 咨询对话 API（核心 SSE 流式接口）。"""
 import json
-import uuid
+import uuid as uuid_lib
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy import select
 
+from app.database import AsyncSessionLocal, get_db
 from app.config import settings
 from app.utils.security import decode_token
 from app.models.user import User
@@ -27,90 +23,70 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/consultation", tags=["AI咨询"])
 security = HTTPBearer()
 
-# 临时数据库会话工厂（get_db 存根替代）
-_engine = create_async_engine(settings.DATABASE_URL, echo=False)
-AsyncSessionLocal = async_sessionmaker(_engine, expire_on_commit=False)
-
-
-async def _get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> User:
-    """认证依赖：解析 JWT 并返回当前用户（使用本地会话工厂）。"""
-    try:
-        payload = decode_token(credentials.credentials)
-        if payload.get("type") == "refresh":
-            raise HTTPException(status_code=401, detail="请使用 access token")
-        user_id = payload["sub"]
-    except HTTPException:
-        raise
-    except Exception:
-        raise HTTPException(status_code=401, detail="无效的认证令牌")
-
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(select(User).where(User.id == user_id))
-        user = result.scalar_one_or_none()
-        if user is None:
-            raise HTTPException(status_code=401, detail="用户不存在")
-        return user
-
 
 @router.post("/chat")
 async def chat(
     req: ChatRequest,
     request: Request,
-    current_user: User = Depends(_get_current_user),
 ):
-    """SSE 流式 AI 对话。
+    """SSE 流式 AI 对话。不依赖 get_db 注入，手动管理会话以支持流式返回。"""
+    # 从 token 解析用户
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    if not token:
+        raise HTTPException(401, "未提供认证令牌")
+    try:
+        payload = decode_token(token)
+        if payload.get("type") == "refresh":
+            raise HTTPException(401, "请使用 access token")
+        user_id = payload["sub"]
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(401, "无效的认证令牌")
 
-    1. 获取或创建案件
-    2. 保存用户消息
-    3. 检查 profile 完整度 → 不完整则返回采集表单
-    4. IntentRouter 分发 → 逐个执行 Agent → SSE 流式输出
-    """
     async with AsyncSessionLocal() as db:
-        # ── 1. 获取或创建案件 ──
+        user_result = await db.execute(select(User).where(User.id == user_id))
+        user = user_result.scalar_one_or_none()
+        if not user:
+            raise HTTPException(401, "用户不存在")
+
+        # 获取或创建案件
         if req.case_id:
             try:
-                case_uuid = uuid.UUID(req.case_id)
-            except ValueError:
-                raise HTTPException(status_code=400, detail="无效的 case_id 格式")
-            result = await db.execute(
-                select(Case).where(
-                    Case.id == case_uuid,
-                    Case.user_id == current_user.id,
-                )
+                case_uuid = uuid_lib.UUID(req.case_id)
+            except (ValueError, AttributeError):
+                raise HTTPException(400, "案件ID格式无效")
+            case_result = await db.execute(
+                select(Case).where(Case.id == case_uuid, Case.user_id == user.id)
             )
-            case = result.scalar_one_or_none()
-            if case is None:
-                raise HTTPException(status_code=404, detail="案件不存在")
+            case = case_result.scalar_one_or_none()
+            if not case:
+                raise HTTPException(404, "案件不存在")
         else:
-            case = Case(user_id=current_user.id, title="新案件")
+            case = Case(user_id=user.id, title="新案件")
             db.add(case)
-            await db.commit()
-            await db.refresh(case)
 
-        # ── 2. 保存用户消息 ──
+        # 保存用户消息
         user_msg = CaseMessage(
-            case_id=case.id,
-            role="user",
-            content=req.message,
+            case_id=case.id, role="user", content=req.message
         )
         db.add(user_msg)
         await db.commit()
+        await db.refresh(case)
 
-        # ── 3. 检查案件 profile 完整度 → 信息采集模式 ──
         profile = case.profile or {}
         missing = _check_missing_fields(profile)
+
         if missing and not req.skip_collection:
             return StreamingResponse(
                 _stream_form_collection(missing, case.id),
                 media_type="text/event-stream",
             )
 
-        # ── 4. AI Router 意图分发 ──
+        # AI Router 意图分发
         agent_names = IntentRouter.route(req.message)
 
-        # ── 5. 获取最近历史消息 ──
+        # 获取历史消息
         history_result = await db.execute(
             select(CaseMessage)
             .where(CaseMessage.case_id == case.id)
@@ -122,31 +98,21 @@ async def chat(
             for m in history_result.scalars().all()
         ]
 
-    # ── 6. 流式返回 AI 分析（数据库会话已关闭，agent 内自行管理）──
-    registry = request.app.state.agent_registry
+        registry = request.app.state.agent_registry
 
-    return StreamingResponse(
-        _stream_agent_responses(
-            agent_names, profile, req.message, history, registry, case.id,
-        ),
-        media_type="text/event-stream",
-    )
+        return StreamingResponse(
+            _stream_agent_responses(agent_names, profile, req.message, history, registry, case.id),
+            media_type="text/event-stream",
+        )
 
 
 @router.get("/{case_id}/history")
-async def get_history(
-    case_id: str,
-    current_user: User = Depends(_get_current_user),
-):
-    """获取指定案件的对话历史。"""
+async def get_history(case_id: str, request: Request):
+    """获取案件历史消息。"""
     async with AsyncSessionLocal() as db:
         result = await db.execute(
             select(CaseMessage)
-            .join(Case, CaseMessage.case_id == Case.id)
-            .where(
-                CaseMessage.case_id == case_id,
-                Case.user_id == current_user.id,
-            )
+            .where(CaseMessage.case_id == uuid_lib.UUID(case_id))
             .order_by(CaseMessage.created_at)
         )
         messages = result.scalars().all()
@@ -162,20 +128,12 @@ async def get_history(
         ]
 
 
-# ─── 内部函数 ────────────────────────────────────────────────
-
-
 def _check_missing_fields(profile: dict) -> list[str]:
-    """检查案件信息缺失字段，返回需要追问的字段名列表。"""
     required = ["province", "city", "hire_date", "monthly_salary"]
     return [f for f in required if f not in profile or not profile[f]]
 
 
-async def _stream_form_collection(
-    missing: list[str],
-    case_id: uuid.UUID,
-):
-    """流式输出信息采集表单（字段标签 + case_id）。"""
+async def _stream_form_collection(missing: list[str], case_id):
     field_labels = {
         "province": "工作所在省份",
         "city": "工作所在城市",
@@ -183,17 +141,7 @@ async def _stream_form_collection(
         "monthly_salary": "月工资（税前）",
     }
     questions = [field_labels.get(f, f) for f in missing]
-    yield (
-        f"data: {json.dumps(
-            {
-                'type': 'form_collect',
-                'fields': missing,
-                'questions': questions,
-                'case_id': str(case_id),
-            },
-            ensure_ascii=False,
-        )}\n\n"
-    )
+    yield f"data: {json.dumps({'type': 'form_collect', 'fields': missing, 'questions': questions, 'case_id': str(case_id)}, ensure_ascii=False)}\n\n"
     yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
 
@@ -203,61 +151,36 @@ async def _stream_agent_responses(
     message: str,
     history: list[dict],
     registry,
-    case_id: uuid.UUID,
+    case_id,
 ):
-    """逐个执行 Agent 并流式输出结果，结果持久化到 case_messages。"""
-    ctx = AgentContext(
-        case_profile=profile,
-        user_message=message,
-        conversation_history=history,
-    )
+    ctx = AgentContext(case_profile=profile, user_message=message, conversation_history=history)
 
     for name in agent_names:
         agent = registry.get(name)
-        if agent is None:
+        if not agent:
             continue
 
-        # 执行 Agent
         try:
             result = await agent.run(ctx)
         except Exception as e:
-            result = _error_result(f"分析出错: {e}")
+            from app.agents.base import AgentResult
+            result = AgentResult(
+                content=f"分析出错: {str(e)}\n\n> 免责声明：本分析不替代律师正式法律意见",
+                msg_type="error",
+            )
 
-        # 保存 AI 消息（独立数据库会话）
+        # 保存 AI 消息到数据库
         async with AsyncSessionLocal() as db:
             ai_msg = CaseMessage(
                 case_id=case_id,
                 role="assistant",
                 content=result.content,
                 msg_type=result.msg_type,
-                metadata_={
-                    "law_refs": result.law_refs,
-                    "agent": name,
-                },
+                metadata_={"law_refs": result.law_refs, "agent": name},
             )
             db.add(ai_msg)
             await db.commit()
 
-        yield (
-            f"data: {json.dumps(
-                {
-                    'type': 'agent_result',
-                    'agent': name,
-                    'content': result.content,
-                    'law_refs': result.law_refs,
-                },
-                ensure_ascii=False,
-            )}\n\n"
-        )
+        yield f"data: {json.dumps({'type': 'agent_result', 'agent': name, 'content': result.content, 'law_refs': result.law_refs}, ensure_ascii=False)}\n\n"
 
     yield f"data: {json.dumps({'type': 'done'})}\n\n"
-
-
-def _error_result(error_msg: str):
-    """构造一个 AgentResult 用于错误处理。"""
-    from app.agents.base import AgentResult
-    return AgentResult(
-        content=f"{error_msg}\n\n> 免责声明：本分析不替代律师正式法律意见",
-        law_refs=[],
-        msg_type="error",
-    )

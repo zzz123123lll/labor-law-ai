@@ -1,10 +1,14 @@
 """FastAPI 应用入口。"""
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app.database import engine
+from app.models import Base
+
 from app.api.auth import router as auth_router
 from app.api.cases import router as cases_router
 from app.api.consultation import router as consultation_router
@@ -19,7 +23,11 @@ from app.api.admin import router as admin_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """启动/关闭时执行。"""
-    from pathlib import Path
+    # 数据库表自动创建
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    # 加载法律库
     from app.legal_engine.law_store import law_store
     from app.legal_engine.case_store import case_store
     from app.agents.registry import AgentRegistry
@@ -29,12 +37,12 @@ async def lifespan(app: FastAPI):
     case_store.load(str(data_dir))
     app.state.law_store = law_store
     app.state.case_store = case_store
-
-    # 初始化 AgentRegistry
     app.state.agent_registry = AgentRegistry(law_store, case_store)
 
     yield
-    # 关闭时清理
+
+    # 关闭引擎
+    await engine.dispose()
 
 
 app = FastAPI(

@@ -1,17 +1,12 @@
-"""文书生成 API：AI 起草法律文书 + 下载。
-
-由于 get_db 尚未实现，当前在模块内创建临时数据库引擎与会话工厂。
-后续 Task 连接主数据库路由后可迁移至 app.state 统一管理。
-"""
+"""文书生成 API：AI 起草法律文书 + 下载。"""
 import uuid
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy import select
 
-from app.config import settings
+from app.database import AsyncSessionLocal
 from app.utils.security import decode_token
 from app.models.user import User
 from app.models.case import Case
@@ -23,10 +18,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/document", tags=["文书生成"])
 security = HTTPBearer()
-
-# 临时数据库会话工厂
-_engine = create_async_engine(settings.DATABASE_URL, echo=False)
-AsyncSessionLocal = async_sessionmaker(_engine, expire_on_commit=False)
 
 # 合法文书类型
 VALID_DOC_TYPES = {"arbitration_request", "complaint_letter", "evidence_list"}

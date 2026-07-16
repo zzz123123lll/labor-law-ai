@@ -1,18 +1,14 @@
-"""FastAPI 依赖注入。"""
+"""FastAPI 依赖注入——认证 + 数据库。"""
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
+from app.database import get_db
 from app.utils.security import decode_token
 from app.models.user import User
 
 security = HTTPBearer()
-
-
-async def get_db() -> AsyncSession:
-    """数据库会话依赖（具体实现在 Task 4 连接主路由后激活）。"""
-    ...
 
 
 async def get_current_user(

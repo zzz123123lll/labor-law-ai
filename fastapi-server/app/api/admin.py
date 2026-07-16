@@ -6,7 +6,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timezone
 
-from app.api.consultation import AsyncSessionLocal, _get_current_user
+from app.database import AsyncSessionLocal
 from app.models.user import User
 from app.models.case import Case
 from app.models.order import Order

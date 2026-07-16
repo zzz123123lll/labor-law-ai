@@ -1,20 +1,15 @@
-"""证据分析 API：上传证据文件 + OCR + AI 分析 + 证据清单。
-
-由于 get_db 尚未实现，当前在模块内创建临时数据库引擎与会话工厂。
-后续 Task 连接主数据库路由后可迁移至 app.state 统一管理。
-"""
+"""证据分析 API：上传证据文件 + OCR + AI 分析 + 证据清单。"""
 import uuid
 import os
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy import select
 
 import aiofiles
 
-from app.config import settings
+from app.database import AsyncSessionLocal
 from app.utils.security import decode_token
 from app.models.user import User
 from app.models.case import Case
@@ -26,10 +21,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/evidence", tags=["证据分析"])
 security = HTTPBearer()
-
-# 临时数据库会话工厂
-_engine = create_async_engine(settings.DATABASE_URL, echo=False)
-AsyncSessionLocal = async_sessionmaker(_engine, expire_on_commit=False)
 
 # 上传目录
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "uploads")
