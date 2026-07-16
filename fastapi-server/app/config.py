@@ -28,7 +28,13 @@ class Settings(BaseSettings):
     WXPAY_API_KEY: str = ""
     WXPAY_NOTIFY_URL: str = ""
 
-    # DeepSeek API
+    # LLM 适配器（支持任何 OpenAI 兼容接口）
+    LLM_PROVIDER: str = "deepseek"      # deepseek / openai / qwen / custom
+    LLM_API_KEY: str = ""                # API Key（必填）
+    LLM_BASE_URL: str = "https://api.deepseek.com"
+    LLM_MODEL: str = "deepseek-chat"     # 模型名
+
+    # DeepSeek API（向下兼容，已废弃——优先用 LLM_*）
     DEEPSEEK_API_KEY: str = ""
     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
 
@@ -55,3 +61,9 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# 向后兼容：旧的 DEEPSEEK_API_KEY → 新的 LLM_API_KEY
+if not settings.LLM_API_KEY and settings.DEEPSEEK_API_KEY:
+    settings.LLM_API_KEY = settings.DEEPSEEK_API_KEY
+if settings.LLM_BASE_URL == "https://api.deepseek.com" and settings.DEEPSEEK_BASE_URL != "https://api.deepseek.com":
+    settings.LLM_BASE_URL = settings.DEEPSEEK_BASE_URL
