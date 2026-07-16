@@ -9,13 +9,6 @@
 
 > **⚡ 接入你自己的 AI 即可使用** — 支持 DeepSeek / 通义千问 / 智谱GLM / Moonshot / GPT-4o / 本地 Ollama / 任意 OpenAI 兼容接口。[配置指南 →](./HOW_TO_CONFIGURE_AI.md)
 
-## 预览
-
-| 首页 | AI 咨询 | 赔偿计算 |
-|------|---------|----------|
-| ![首页](docs/images/homepage.png) | ![咨询](docs/images/consultation.png) | ![赔偿](docs/images/compensation.png) |
-
----
 
 ## 特点
 

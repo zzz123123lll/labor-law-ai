@@ -9,3 +9,7 @@ redisdata/
 *.egg-info/
 .pytest_cache/
 alembic/versions/*.pyc
+*.db
+logs/
+uploads/
+docs/
