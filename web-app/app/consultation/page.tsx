@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 
 type ProblemType = "fired" | "wage" | "resign" | "other";
@@ -88,6 +88,13 @@ const AGENT_LABELS: Record<string, string> = {
   document_draft: "文书起草",
 };
 
+const TYPE_KEY_MAP: Record<string, ProblemType> = {
+  "被辞退": "fired",
+  "拖欠工资": "wage",
+  "想离职": "resign",
+  "其他问题": "other",
+};
+
 export default function ConsultationPage() {
   const [step, setStep] = useState<Step>(1);
   const [problemType, setProblemType] = useState<ProblemType | null>(null);
@@ -106,6 +113,7 @@ export default function ConsultationPage() {
   const [generatedDocId, setGeneratedDocId] = useState<string | null>(null);
   const [evidenceLoading, setEvidenceLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   /* ---------- sessionStorage 恢复/保存 ---------- */
@@ -114,7 +122,8 @@ export default function ConsultationPage() {
       const saved = sessionStorage.getItem("consultation_wizard");
       if (saved) {
         const data = JSON.parse(saved);
-        if (data.step) setStep(data.step);
+        // 只恢复 step > 1 的进度（首页已经直达了 step 2）
+        if (data.step && data.step > 1) setStep(data.step);
         if (data.problemType) setProblemType(data.problemType);
         if (data.form) setForm(data.form);
         if (data.messages) setMessages(data.messages);
@@ -124,6 +133,16 @@ export default function ConsultationPage() {
       }
     } catch {
       /* ignore corrupt sessionStorage */
+    }
+
+    // 如果 URL 带了 type 参数，直接跳到 Step 2
+    const typeParam = searchParams.get("type");
+    if (typeParam) {
+      const mapped = TYPE_KEY_MAP[typeParam];
+      if (mapped) {
+        setProblemType(mapped);
+        setStep(2);
+      }
     }
   }, []);
 

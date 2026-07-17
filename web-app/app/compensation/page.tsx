@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
 
 export default function CompensationPage() {
@@ -12,6 +12,20 @@ export default function CompensationPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
+
+  // 从 Wizard 预填数据
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("consultation_wizard");
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data.form) {
+          if (data.form.monthly_salary && !salary) setSalary(data.form.monthly_salary);
+          if (data.form.hire_date && !hireDate) setHireDate(data.form.hire_date);
+        }
+      }
+    } catch {}
+  }, []);
 
   const handleCalc = async () => {
     if (!salary || !hireDate) { setError("请至少填写月工资和入职日期"); return; }
@@ -28,6 +42,13 @@ export default function CompensationPage() {
           leave_date: leaveDate || undefined,
           leave_type: leaveType,
           has_contract: hasContract === "yes",
+          ...(() => {
+            try {
+              const saved = sessionStorage.getItem("consultation_wizard");
+              const data = saved ? JSON.parse(saved) : null;
+              return data?.caseId ? { case_id: data.caseId } : {};
+            } catch { return {}; }
+          })(),
         }),
       });
       const data = await r.json();
@@ -48,6 +69,12 @@ export default function CompensationPage() {
         </a>
         <h1 className="text-lg font-semibold tracking-tight">赔偿计算器</h1>
       </header>
+
+      {salary && hireDate && (
+        <div className="text-xs bg-[#EFF6FF] text-[var(--color-accent)] px-3 py-2 rounded-sm mb-3">
+          已从咨询案件自动填入数据，可直接计算
+        </div>
+      )}
 
       <div className="card space-y-4">
         <div>
@@ -118,6 +145,25 @@ export default function CompensationPage() {
                 <pre className="text-xs mt-2 text-[var(--color-text-muted)] whitespace-pre-wrap">{result.calculation}</pre>
               </details>
             )}
+            {(() => {
+              try {
+                const saved = sessionStorage.getItem("consultation_wizard");
+                const data = saved ? JSON.parse(saved) : null;
+                if (data?.caseId) {
+                  return (
+                    <div className="mt-4 pt-3 border-t border-[var(--color-border)]">
+                      <a
+                        href={`/consultation/cases/${data.caseId}`}
+                        className="text-xs text-[var(--color-accent)] hover:underline"
+                      >
+                        返回案件
+                      </a>
+                    </div>
+                  );
+                }
+              } catch {}
+              return null;
+            })()}
           </div>
         )}
       </div>

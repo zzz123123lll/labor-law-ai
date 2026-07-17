@@ -22,28 +22,53 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [wizardCaseId, setWizardCaseId] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch("/api/cases")
-      .then(r => r.json())
-      .then(async cases => {
-        if (!Array.isArray(cases)) { setLoading(false); return; }
-        // 遍历案件获取文书
-        const allDocs: Doc[] = [];
-        for (const c of cases) {
-          try {
-            const r = await apiFetch(`/api/cases/${c.id}`);
-            const detail = await r.json();
-            if (detail.generated_documents?.length) {
-              allDocs.push(...detail.generated_documents);
-            }
-          } catch {}
-        }
-        setDocs(allDocs);
-      })
-      .catch(() => setError("加载失败，请确认后端已启动"))
-      .finally(() => setLoading(false));
+    try {
+      const saved = sessionStorage.getItem("consultation_wizard");
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data.caseId) setWizardCaseId(data.caseId);
+      }
+    } catch {}
   }, []);
+
+  useEffect(() => {
+    const fetchDocs = async () => {
+      try {
+        if (wizardCaseId) {
+          // 直接从 Wizard 案件加载文书
+          const r = await apiFetch(`/api/cases/${wizardCaseId}`);
+          const detail = await r.json();
+          if (detail.generated_documents?.length) {
+            setDocs(detail.generated_documents);
+          }
+        } else {
+          // 兜底：遍历所有案件
+          const r = await apiFetch("/api/cases");
+          const cases = await r.json();
+          if (!Array.isArray(cases)) { setLoading(false); return; }
+          const allDocs: Doc[] = [];
+          for (const c of cases) {
+            try {
+              const r2 = await apiFetch(`/api/cases/${c.id}`);
+              const detail = await r2.json();
+              if (detail.generated_documents?.length) {
+                allDocs.push(...detail.generated_documents);
+              }
+            } catch {}
+          }
+          setDocs(allDocs);
+        }
+      } catch {
+        setError("加载失败，请确认后端已启动");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDocs();
+  }, [wizardCaseId]);
 
   const handleDownload = async (docId: string) => {
     setDownloading(docId);
@@ -80,9 +105,19 @@ export default function DocumentsPage() {
           ) : (
             <>
               <svg className="mx-auto mb-3" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="1.5"><path d="M11 5H6a2 2 0 00-2 2v12a2 2 0 002 2h8M12 13l3-3 3 3M21 10v9M12 3l9 4v2l-9-4-9 4V7l9-4z"/></svg>
-              <p className="text-sm text-[var(--color-text-muted)]">暂无文书</p>
-              <p className="text-xs text-[var(--color-text-muted)] mt-1 mb-4">完成 AI 咨询后可自动生成法律文书</p>
-              <a href="/consultation" className="btn-primary no-underline text-sm inline-block">开始咨询</a>
+              {wizardCaseId ? (
+                <>
+                  <p className="text-sm text-[var(--color-text-muted)]">尚未生成文书</p>
+                  <p className="text-xs text-[var(--color-text-muted)] mt-1 mb-4">完成 AI 咨询后可在此下载法律文书</p>
+                  <a href="/consultation" className="btn-primary no-underline text-sm inline-block">返回咨询</a>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-[var(--color-text-muted)]">暂无文书</p>
+                  <p className="text-xs text-[var(--color-text-muted)] mt-1 mb-4">完成 AI 咨询后可自动生成法律文书</p>
+                  <a href="/consultation" className="btn-primary no-underline text-sm inline-block">开始咨询</a>
+                </>
+              )}
             </>
           )}
         </div>
