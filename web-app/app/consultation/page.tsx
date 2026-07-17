@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import ReactMarkdown from "react-markdown";
 
 type ProblemType = "fired" | "wage" | "resign" | "other";
 type Step = 1 | 2 | 3;
@@ -146,15 +147,6 @@ export default function ConsultationPage() {
   const formatAgentLabel = (agent: string): string =>
     AGENT_LABELS[agent] || agent;
 
-  const renderContent = (content: string) =>
-    content
-      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-      .replace(
-        /^- (.*)/gm,
-        "<span style='display:block;padding-left:8px;margin:2px 0'>· $1</span>"
-      )
-      .replace(/\n/g, "<br/>");
-
   /* ---------- 事件处理 ---------- */
   const handleSelectType = (type: ProblemType) => {
     // 如果点了和当前相同的类型也不影响
@@ -244,7 +236,7 @@ export default function ConsultationPage() {
         {
           agent: "error",
           content:
-            "连接服务失败，请确认后端已启动。<br/><br/>> 本分析不替代律师正式法律意见",
+            "连接服务失败，请确认后端已启动。\n\n> 本分析不替代律师正式法律意见",
         },
       ]);
     } finally {
@@ -460,13 +452,9 @@ export default function ConsultationPage() {
                 {formatAgentLabel(msg.agent)}
               </div>
             )}
-            <div
-              className="msg-ai"
-              style={{ maxWidth: "100%" }}
-              dangerouslySetInnerHTML={{
-                __html: renderContent(msg.content),
-              }}
-            />
+            <div className="msg-ai" style={{ maxWidth: "100%" }}>
+              <ReactMarkdown>{msg.content}</ReactMarkdown>
+            </div>
           </div>
         ))}
 

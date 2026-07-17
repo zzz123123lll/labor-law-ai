@@ -189,6 +189,9 @@
     font-size: 0.875rem;
     line-height: 1.65;
   }
+  .msg-ai p { margin: 0.25rem 0; }
+  .msg-ai p:first-child { margin-top: 0; }
+  .msg-ai p:last-child { margin-bottom: 0; }
 
   .report-card {
     background: var(--color-surface);
