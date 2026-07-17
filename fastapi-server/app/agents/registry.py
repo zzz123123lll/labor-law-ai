@@ -5,6 +5,7 @@ from app.agents.compensation_calc import CompensationCalcAgent
 from app.agents.contract_review import ContractReviewAgent
 from app.agents.document_draft import DocumentDraftAgent
 from app.agents.evidence_analyze import EvidenceAnalyzeAgent
+from app.agents.evidence_checklist import EvidenceChecklistAgent
 from app.agents.strategy_plan import StrategyPlanAgent
 from app.agents.violation_detect import ViolationDetectAgent
 
@@ -19,6 +20,7 @@ class AgentRegistry:
             "compensation": CompensationCalcAgent(law_store, case_store),
             "contract_review": ContractReviewAgent(law_store, case_store),
             "evidence": EvidenceAnalyzeAgent(law_store, case_store),
+            "evidence_checklist": EvidenceChecklistAgent(law_store, case_store),
             "document_draft": DocumentDraftAgent(law_store, case_store),
             "arbitration": ArbitrationGuideAgent(law_store, case_store),
             "strategy": StrategyPlanAgent(law_store, case_store),

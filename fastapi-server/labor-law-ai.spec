@@ -12,6 +12,8 @@ a = Analysis(
         # 法律数据
         ('app/legal_engine/data/laws/*.yaml', 'legal_engine/data/laws'),
         ('app/legal_engine/data/cases/*.yaml', 'legal_engine/data/cases'),
+        # 仲裁委数据
+        ('app/legal_engine/data/arbitration_committees.json', 'legal_engine/data'),
         # 前端静态文件
         ('../web-app/out', 'frontend'),
         # .env.example 作为默认配置参考

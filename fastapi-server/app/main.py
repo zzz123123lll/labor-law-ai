@@ -14,6 +14,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 import app.logging_config  # noqa: F401  初始化结构化日志
 from app.api.admin import router as admin_router
+from app.api.arbitration import router as arbitration_router
 from app.api.auth import router as auth_router
 from app.api.cases import router as cases_router
 from app.api.compensation import router as compensation_router
@@ -94,6 +95,7 @@ if getattr(sys, 'frozen', False):
 else:
     frontend_dir = Path(__file__).parent.parent.parent / "web-app" / "out"
 if frontend_dir.exists():
+    app.include_router(arbitration_router)
     app.include_router(auth_router)
     app.include_router(cases_router)
     app.include_router(consultation_router)
@@ -113,6 +115,7 @@ if frontend_dir.exists():
     app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
 else:
     # 前端目录不存在时不挂载（开发模式，前端独立启动）
+    app.include_router(arbitration_router)
     app.include_router(auth_router)
     app.include_router(cases_router)
     app.include_router(consultation_router)

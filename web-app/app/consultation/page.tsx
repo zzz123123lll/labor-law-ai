@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 
 type ProblemType = "fired" | "wage" | "resign" | "other";
@@ -101,6 +102,10 @@ export default function ConsultationPage() {
   const [done, setDone] = useState(false);
   const [caseId, setCaseId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [docLoading, setDocLoading] = useState(false);
+  const [generatedDocId, setGeneratedDocId] = useState<string | null>(null);
+  const [evidenceLoading, setEvidenceLoading] = useState(false);
+  const router = useRouter();
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   /* ---------- sessionStorage 恢复/保存 ---------- */
@@ -115,6 +120,7 @@ export default function ConsultationPage() {
         if (data.messages) setMessages(data.messages);
         if (data.done) setDone(data.done);
         if (data.caseId) setCaseId(data.caseId);
+        if (data.generatedDocId) setGeneratedDocId(data.generatedDocId);
       }
     } catch {
       /* ignore corrupt sessionStorage */
@@ -125,12 +131,12 @@ export default function ConsultationPage() {
     try {
       sessionStorage.setItem(
         "consultation_wizard",
-        JSON.stringify({ step, problemType, form, messages, done, caseId })
+        JSON.stringify({ step, problemType, form, messages, done, caseId, generatedDocId })
       );
     } catch {
       /* quota exceeded etc */
     }
-  }, [step, problemType, form, messages, done, caseId]);
+  }, [step, problemType, form, messages, done, caseId, generatedDocId]);
 
   /* ---------- 自动滚动 ---------- */
   useEffect(() => {
@@ -243,6 +249,45 @@ export default function ConsultationPage() {
       setLoading(false);
       setDone(true);
     }
+  };
+
+  const handleGenerateDocument = async () => {
+    if (!caseId) return;
+    setDocLoading(true);
+    try {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+      const resp = await fetch(`${API_BASE}/api/document/auto-fill`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ case_id: caseId }),
+      });
+      const data = await resp.json();
+      if (data.id) {
+        setGeneratedDocId(data.id);
+      }
+    } catch {
+      /* 静默失败，按钮状态不变 */
+    }
+    setDocLoading(false);
+  };
+
+  const handleGenerateEvidenceChecklist = async () => {
+    if (!caseId) return;
+    setEvidenceLoading(true);
+    try {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+      const resp = await fetch(`${API_BASE}/api/document/evidence-checklist`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ case_id: caseId, doc_type: "evidence_list" }),
+      });
+      if (resp.ok) {
+        router.push("/documents");
+      }
+    } catch {
+      /* 静默失败 */
+    }
+    setEvidenceLoading(false);
   };
 
   /* ========== Step 1: 选问题类型 ========== */
@@ -494,18 +539,40 @@ export default function ConsultationPage() {
       {/* 底部操作按钮 */}
       {done && caseId && !error && (
         <div className="bg-[var(--color-surface)] border-t border-[var(--color-border)] px-4 py-4 space-y-2 shrink-0">
-          <a
-            href={`/documents?case_id=${caseId}`}
-            className="btn-primary block text-center w-full no-underline"
-          >
-            生成仲裁申请书
-          </a>
-          <a
-            href={`/evidence/upload?case_id=${caseId}`}
+          {generatedDocId ? (
+            <a
+              href={`/documents`}
+              className="btn-primary block text-center w-full no-underline"
+            >
+              查看已生成的文书
+            </a>
+          ) : (
+            <button
+              onClick={handleGenerateDocument}
+              disabled={docLoading}
+              className="btn-primary block text-center w-full no-underline"
+              type="button"
+            >
+              {docLoading ? "生成中..." : "生成仲裁申请书"}
+            </button>
+          )}
+          <button
+            onClick={handleGenerateEvidenceChecklist}
+            disabled={evidenceLoading}
             className="btn-ghost block text-center w-full no-underline"
+            type="button"
           >
-            查看证据清单
-          </a>
+            {evidenceLoading ? "生成中..." : "查看证据清单"}
+          </button>
+          <p className="text-xs text-[var(--color-text-muted)] mt-3 text-center">
+            需要提交仲裁？
+            <a
+              href={`/toolbox?city=${encodeURIComponent(form.city)}`}
+              className="text-[var(--color-accent)] hover:underline ml-1"
+            >
+              查找 {form.city || "你所在城市"} 的劳动仲裁委
+            </a>
+          </p>
         </div>
       )}
 

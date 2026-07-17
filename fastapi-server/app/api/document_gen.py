@@ -6,6 +6,7 @@ from datetime import UTC
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from app.agents.base import AgentContext
@@ -17,6 +18,13 @@ from app.schemas.document import DocumentGenerateRequest, DocumentResponse
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/document", tags=["文书生成"])
+
+
+class AutoFillRequest(BaseModel):
+    """自动填入文书请求。"""
+    case_id: str = Field(min_length=1)
+    applicant_name: str = Field(default="", max_length=64)
+    applicant_phone: str = Field(default="", max_length=32)
 
 # 合法文书类型
 VALID_DOC_TYPES = {"arbitration_request", "complaint_letter", "evidence_list"}
@@ -95,6 +103,135 @@ async def generate_document(
             case_id=case_uuid,
             doc_type=req.doc_type,
             title=title,
+            content=result.content,
+            status="draft",
+        )
+        db.add(doc)
+        await db.commit()
+        await db.refresh(doc)
+
+        return DocumentResponse(
+            id=str(doc.id),
+            doc_type=doc.doc_type,
+            title=doc.title,
+            content=doc.content,
+            status=doc.status,
+            created_at=doc.created_at.isoformat(),
+        )
+
+
+@router.post("/auto-fill", status_code=201)
+async def auto_fill_document(req: AutoFillRequest, request: Request):
+    """自动填入案件信息生成仲裁申请书。"""
+    try:
+        case_uuid = uuid.UUID(req.case_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="无效的 case_id 格式")
+
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(Case).where(Case.id == case_uuid))
+        case = result.scalar_one_or_none()
+        if case is None:
+            raise HTTPException(status_code=404, detail="案件不存在")
+
+        profile = case.profile or {}
+
+        # 拼装自动填入上下文
+        user_msg_parts = []
+        if req.applicant_name:
+            user_msg_parts.append(f"申请人姓名：{req.applicant_name}")
+        if req.applicant_phone:
+            user_msg_parts.append(f"联系电话：{req.applicant_phone}")
+        user_msg_parts.append(f"公司全称：{profile.get('company_name', '')}")
+        user_msg_parts.append(f"工作城市：{profile.get('city', '')}")
+        user_msg_parts.append(f"入职时间：{profile.get('hire_date', '')}")
+        user_msg_parts.append(f"月薪：{profile.get('monthly_salary', '')}")
+        user_msg_parts.append(f"问题类型：{profile.get('problem_type', '')}")
+        user_msg_parts.append("请根据以上信息起草一份劳动仲裁申请书，已知信息必须自动填入。")
+
+        registry = getattr(request.app.state, "agent_registry", None)
+        if registry is None:
+            raise HTTPException(status_code=500, detail="Agent 注册表未初始化")
+        agent = registry.get("document_draft")
+        if agent is None:
+            raise HTTPException(status_code=500, detail="文书生成 Agent 未注册")
+
+        ctx = AgentContext(case_profile=profile, user_message="\n".join(user_msg_parts))
+
+        try:
+            result = await agent.run(ctx)
+        except Exception as e:
+            logger.exception("文书生成 Agent 执行失败")
+            raise HTTPException(status_code=500, detail=f"文书生成失败: {str(e)}")
+
+        doc = GeneratedDocument(
+            case_id=case_uuid,
+            doc_type="arbitration_request",
+            title="劳动仲裁申请书",
+            content=result.content,
+            status="draft",
+        )
+        db.add(doc)
+        await db.commit()
+        await db.refresh(doc)
+
+        return DocumentResponse(
+            id=str(doc.id),
+            doc_type=doc.doc_type,
+            title=doc.title,
+            content=doc.content,
+            status=doc.status,
+            created_at=doc.created_at.isoformat(),
+        )
+
+
+@router.post("/evidence-checklist", status_code=201)
+async def generate_evidence_checklist(
+    req: DocumentGenerateRequest,
+    request: Request,
+):
+    """调 EvidenceChecklistAgent 生成带获取方法的证据清单。"""
+    try:
+        case_uuid = uuid.UUID(req.case_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="无效的 case_id 格式")
+
+    async with AsyncSessionLocal() as db:
+        # 查询案件
+        result = await db.execute(
+            select(Case).where(Case.id == case_uuid)
+        )
+        case = result.scalar_one_or_none()
+        if case is None:
+            raise HTTPException(status_code=404, detail="案件不存在")
+
+        case_profile = case.profile or {}
+
+        # 获取 EvidenceChecklistAgent
+        registry = getattr(request.app.state, "agent_registry", None)
+        if registry is None:
+            raise HTTPException(status_code=500, detail="Agent 注册表未初始化")
+        agent = registry.get("evidence_checklist")
+        if agent is None:
+            raise HTTPException(status_code=500, detail="证据清单 Agent 未注册")
+
+        ctx = AgentContext(
+            case_profile=case_profile,
+            user_message="请根据我的案件信息，生成一份带获取方法的证据清单。",
+        )
+
+        # 执行 Agent
+        try:
+            result = await agent.run(ctx)
+        except Exception as e:
+            logger.exception("证据清单 Agent 执行失败")
+            raise HTTPException(status_code=500, detail=f"证据清单生成失败: {str(e)}")
+
+        # 保存到数据库
+        doc = GeneratedDocument(
+            case_id=case_uuid,
+            doc_type="evidence_list",
+            title="证据清单",
             content=result.content,
             status="draft",
         )
