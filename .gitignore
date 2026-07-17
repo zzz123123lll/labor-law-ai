@@ -10,6 +10,8 @@ redisdata/
 .pytest_cache/
 alembic/versions/*.pyc
 *.db
+app_settings.json
 logs/
 uploads/
 docs/
+web-app/out/

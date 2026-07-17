@@ -1,4 +1,5 @@
 """FastAPI 应用入口。"""
+import sys
 import app.logging_config  # noqa: F401  初始化结构化日志
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -6,6 +7,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
+from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -29,6 +31,7 @@ from app.api.compensation import router as compensation_router
 from app.api.document_gen import router as document_gen_router
 from app.api.payment import router as payment_router
 from app.api.admin import router as admin_router
+from app.api.settings import router as settings_router
 
 # 速率限制器（内存存储，生产环境建议换 Redis）
 limiter = Limiter(
@@ -47,7 +50,12 @@ async def lifespan(app: FastAPI):
     from app.legal_engine.case_store import case_store
     from app.agents.registry import AgentRegistry
 
-    data_dir = Path(__file__).parent / "legal_engine" / "data"
+    # PyInstaller 打包后资源路径
+    if getattr(sys, 'frozen', False):
+        # 打包后资源在 exe 旁边
+        data_dir = Path(sys.executable).parent / "legal_engine" / "data"
+    else:
+        data_dir = Path(__file__).parent / "legal_engine" / "data"
     law_store.load(str(data_dir))
     case_store.load(str(data_dir))
     app.state.law_store = law_store
@@ -81,17 +89,42 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth_router)
-app.include_router(cases_router)
-app.include_router(consultation_router)
-app.include_router(contract_review_router)
-app.include_router(evidence_router)
-app.include_router(compensation_router)
-app.include_router(document_gen_router)
-app.include_router(payment_router)
-app.include_router(admin_router)
+# 托管前端静态文件（Next.js 静态导出产物）
+if getattr(sys, 'frozen', False):
+    frontend_dir = Path(sys.executable).parent / "frontend"
+else:
+    frontend_dir = Path(__file__).parent.parent.parent / "web-app" / "out"
+if frontend_dir.exists():
+    app.include_router(auth_router)
+    app.include_router(cases_router)
+    app.include_router(consultation_router)
+    app.include_router(contract_review_router)
+    app.include_router(evidence_router)
+    app.include_router(compensation_router)
+    app.include_router(document_gen_router)
+    app.include_router(payment_router)
+    app.include_router(admin_router)
+    app.include_router(settings_router)
 
+    @app.get("/api/health")
+    async def health():
+        return {"status": "ok"}
 
-@app.get("/api/health")
-async def health():
-    return {"status": "ok"}
+    # 静态文件挂载（最后注册，优先级最低）
+    app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
+else:
+    # 前端目录不存在时不挂载（开发模式，前端独立启动）
+    app.include_router(auth_router)
+    app.include_router(cases_router)
+    app.include_router(consultation_router)
+    app.include_router(contract_review_router)
+    app.include_router(evidence_router)
+    app.include_router(compensation_router)
+    app.include_router(document_gen_router)
+    app.include_router(payment_router)
+    app.include_router(admin_router)
+    app.include_router(settings_router)
+
+    @app.get("/api/health")
+    async def health():
+        return {"status": "ok"}

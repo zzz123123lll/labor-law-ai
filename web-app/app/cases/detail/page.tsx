@@ -1,18 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 
 const stageLabel: Record<string, string> = { consultation: "咨询中", evidence: "取证中", negotiation: "协商中", arbitration: "仲裁中", litigation: "诉讼中", closed: "已结案" };
 
-export default function CaseDetailPage() {
-  const params = useParams();
-  const caseId = params.id as string;
+function CaseDetailInner() {
+  const searchParams = useSearchParams();
+  const caseId = searchParams.get("id") || "";
   const [detail, setDetail] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!caseId) { setLoading(false); return; }
     apiFetch(`/api/cases/${caseId}`)
       .then(r => r.json())
       .then(data => setDetail(data))
@@ -96,5 +97,13 @@ export default function CaseDetailPage() {
 
       <p className="disclaimer">⚠️ 案件信息仅供个人维权参考，不构成法律意见。</p>
     </div>
+  );
+}
+
+export default function CaseDetailPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center gap-2 justify-center py-20 text-[var(--color-text-muted)] text-sm"><span className="w-2 h-2 rounded-full bg-[var(--color-accent)] animate-pulse"/>加载中...</div>}>
+      <CaseDetailInner />
+    </Suspense>
   );
 }

@@ -7,9 +7,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from app.main import app
 from app.models.base import Base
-from app.models.user import User
 from app.models.case import Case
-from app.utils.security import create_access_token
 
 
 def _parse_sse(text: str) -> list[dict]:
@@ -31,35 +29,9 @@ async def _setup_db():
 
 
 @pytest.mark.asyncio
-async def test_chat_requires_auth():
-    """未认证用户调用 chat 应返回 401。"""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.post("/api/consultation/chat", json={"message": "被辞退了怎么办"})
-    assert resp.status_code == 401
-
-
-@pytest.mark.asyncio
-async def test_history_requires_auth():
-    """未认证用户查看历史应返回 401。"""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/api/consultation/00000000-0000-0000-0000-000000000000/history")
-    assert resp.status_code == 401
-
-
-@pytest.mark.asyncio
 async def test_chat_creates_case():
     """未提供 case_id 时自动创建案件，新案件无 profile 返回信息采集表单。"""
     engine, factory = await _setup_db()
-
-    async with factory() as db:
-        user_id = uuid.uuid4()
-        user = User(id=user_id, wechat_openid="test_creates_case")
-        db.add(user)
-        await db.commit()
-
-    token = create_access_token(str(user_id))
 
     try:
         with pytest.MonkeyPatch().context() as mp:
@@ -70,7 +42,6 @@ async def test_chat_creates_case():
                 resp = await client.post(
                     "/api/consultation/chat",
                     json={"message": "被辞退了怎么办"},
-                    headers={"Authorization": f"Bearer {token}"},
                 )
 
         assert resp.status_code == 200
@@ -91,17 +62,10 @@ async def test_chat_returns_form_when_profile_incomplete():
     engine, factory = await _setup_db()
 
     async with factory() as db:
-        user_id = uuid.uuid4()
-        user = User(id=user_id, wechat_openid="test_incomplete")
-        db.add(user)
-        await db.commit()
-
-        case = Case(user_id=user_id, title="劳动纠纷", profile={"province": "广东"})
+        case = Case(user_id=uuid.uuid4(), title="劳动纠纷", profile={"province": "广东"})
         db.add(case)
         await db.commit()
         case_id = str(case.id)
-
-    token = create_access_token(str(user_id))
 
     try:
         with pytest.MonkeyPatch().context() as mp:
@@ -112,7 +76,6 @@ async def test_chat_returns_form_when_profile_incomplete():
                 resp = await client.post(
                     "/api/consultation/chat",
                     json={"message": "公司拖欠工资怎么办", "case_id": case_id},
-                    headers={"Authorization": f"Bearer {token}"},
                 )
 
         assert resp.status_code == 200
@@ -131,21 +94,15 @@ async def test_chat_returns_agent_result():
     engine, factory = await _setup_db()
 
     async with factory() as db:
-        user_id = uuid.uuid4()
-        user = User(id=user_id, wechat_openid="test_agent_result")
-        db.add(user)
-        await db.commit()
-
         case = Case(
-            user_id=user_id,
+            user_id=uuid.uuid4(),
             title="劳动纠纷",
-            profile={"province": "广东", "city": "深圳", "hire_date": "2024-03", "monthly_salary": "8000"},
+            profile={"company_name": "某公司", "province": "广东", "city": "深圳", "hire_date": "2024-03", "monthly_salary": "8000"},
         )
         db.add(case)
         await db.commit()
         case_id = str(case.id)
 
-    token = create_access_token(str(user_id))
     # 设空 agent_registry，profile 完整时走到 agent 路由但不执行真实 agent
     app.state.agent_registry = {}
 
@@ -159,7 +116,6 @@ async def test_chat_returns_agent_result():
                 resp = await client.post(
                     "/api/consultation/chat",
                     json={"message": "被辞退了怎么办", "case_id": case_id},
-                    headers={"Authorization": f"Bearer {token}"},
                 )
 
         assert resp.status_code == 200

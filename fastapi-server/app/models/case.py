@@ -12,7 +12,7 @@ class Case(Base, TimestampMixin):
     __tablename__ = "cases"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"), index=True)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("users.id"), index=True, nullable=True)
     title: Mapped[str] = mapped_column(String(128))
     stage: Mapped[str] = mapped_column(String(16), default="consultation")
     status: Mapped[str] = mapped_column(String(16), default="active")  # active | archived | deleted

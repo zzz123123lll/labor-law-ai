@@ -1,20 +1,16 @@
 """支付 API —— 三档定价 + 订单 + 订阅 + VIP。"""
 from datetime import datetime, timezone, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 
 from app.database import AsyncSessionLocal
-from app.utils.security import decode_token
 from app.models.user import User
 from app.models.order import Order
 from app.models.subscription import Subscription
 from app.schemas.payment import PlanInfo, OrderResponse, SubscriptionResponse
 
 router = APIRouter(prefix="/api/payment", tags=["支付"])
-security = HTTPBearer()
 
 
 # ---------------------------------------------------------------------------
@@ -45,28 +41,6 @@ PLANS = [
 ]
 
 
-async def _get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> User:
-    """认证依赖：解析 JWT 并返回当前用户。"""
-    try:
-        payload = decode_token(credentials.credentials)
-        if payload.get("type") == "refresh":
-            raise HTTPException(status_code=401, detail="请使用 access token")
-        user_id = payload["sub"]
-    except HTTPException:
-        raise
-    except Exception:
-        raise HTTPException(status_code=401, detail="无效的认证令牌")
-
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
-        user = result.scalar_one_or_none()
-        if user is None:
-            raise HTTPException(status_code=401, detail="用户不存在")
-        return user
-
-
 @router.get("/plans", response_model=list[PlanInfo])
 async def get_plans():
     """获取所有付费方案。"""
@@ -74,7 +48,7 @@ async def get_plans():
 
 
 @router.post("/create-order", response_model=OrderResponse)
-async def create_order(plan_id: str, current_user: User = Depends(_get_current_user)):
+async def create_order(plan_id: str):
     """创建支付订单。微信支付 Native API → 二维码 URL。
 
     当前为 mock 实现——微信支付需要企业资质，暂返回占位二维码。
@@ -85,7 +59,6 @@ async def create_order(plan_id: str, current_user: User = Depends(_get_current_u
 
     async with AsyncSessionLocal() as db:
         order = Order(
-            user_id=current_user.id,
             plan_id=plan_id,
             amount=plan.price,
             status="pending",
@@ -117,49 +90,50 @@ async def payment_notify(transaction_id: str, order_id: str):
         order.wx_transaction_id = transaction_id
         order.paid_at = datetime.now(timezone.utc)
 
-        # 开通 / 续费订阅
-        sub_result = await db.execute(
-            select(Subscription).where(Subscription.user_id == order.user_id)
-        )
-        sub = sub_result.scalar_one_or_none()
-
-        now = datetime.now(timezone.utc)
-        if order.plan_id == "monthly":
-            end_at = now + timedelta(days=30)
-        else:
-            end_at = now + timedelta(days=365)
-
-        if sub:
-            sub.plan_id = order.plan_id
-            sub.status = "active"
-            sub.start_at = sub.start_at or now
-            sub.end_at = max(sub.end_at or now, end_at)
-        else:
-            sub = Subscription(
-                user_id=order.user_id,
-                plan_id=order.plan_id,
-                status="active",
-                start_at=now,
-                end_at=end_at,
+        # 开通订阅（如果订单有关联用户）
+        if order.user_id:
+            sub_result = await db.execute(
+                select(Subscription).where(Subscription.user_id == order.user_id)
             )
-            db.add(sub)
+            sub = sub_result.scalar_one_or_none()
 
-        # 更新用户 VIP 状态
-        user_result = await db.execute(select(User).where(User.id == order.user_id))
-        user = user_result.scalar_one()
-        user.is_vip = True
-        user.vip_expire_at = end_at
+            now = datetime.now(timezone.utc)
+            if order.plan_id == "monthly":
+                end_at = now + timedelta(days=30)
+            else:
+                end_at = now + timedelta(days=365)
+
+            if sub:
+                sub.plan_id = order.plan_id
+                sub.status = "active"
+                sub.start_at = sub.start_at or now
+                sub.end_at = max(sub.end_at or now, end_at)
+            else:
+                sub = Subscription(
+                    user_id=order.user_id,
+                    plan_id=order.plan_id,
+                    status="active",
+                    start_at=now,
+                    end_at=end_at,
+                )
+                db.add(sub)
+
+            # 更新用户 VIP 状态
+            user_result = await db.execute(select(User).where(User.id == order.user_id))
+            user = user_result.scalar_one()
+            user.is_vip = True
+            user.vip_expire_at = end_at
 
         await db.commit()
-        return {"success": True, "message": "支付成功，已开通VIP"}
+        return {"success": True, "message": "支付成功"}
 
 
 @router.get("/my-subscription", response_model=SubscriptionResponse | None)
-async def get_my_subscription(current_user: User = Depends(_get_current_user)):
-    """获取当前用户的订阅状态。"""
+async def get_my_subscription():
+    """获取当前订阅状态。"""
     async with AsyncSessionLocal() as db:
         result = await db.execute(
-            select(Subscription).where(Subscription.user_id == current_user.id)
+            select(Subscription).order_by(Subscription.created_at.desc()).limit(1)
         )
         sub = result.scalar_one_or_none()
         if not sub:

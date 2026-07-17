@@ -15,8 +15,9 @@ async def test_health():
 
 @pytest.mark.asyncio
 async def test_wechat_login_missing_code():
-    """缺少 code 参数应返回 422。"""
+    """本地工具模式无需登录。"""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.post("/api/auth/wechat-login", json={})
-    assert resp.status_code == 422
+        resp = await client.get("/api/auth/status")
+    assert resp.status_code == 200
+    assert resp.json() == {"authenticated": False, "message": "本地工具模式，无需登录"}

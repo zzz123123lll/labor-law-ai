@@ -3,8 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.api.deps import get_db, get_current_user
-from app.models.user import User
+from app.api.deps import get_db
 from app.models.case import Case
 from app.schemas.case import CaseCreate, CaseUpdate, CaseSummary, CaseDetail
 
@@ -14,11 +13,10 @@ router = APIRouter(prefix="/api/cases", tags=["案件"])
 @router.post("", response_model=CaseDetail, status_code=201)
 async def create_case(
     req: CaseCreate,
-    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """创建新案件。"""
-    case = Case(user_id=current_user.id, title=req.title)
+    case = Case(title=req.title)
     db.add(case)
     await db.commit()
     await db.refresh(case)
@@ -27,13 +25,12 @@ async def create_case(
 
 @router.get("", response_model=list[CaseSummary])
 async def list_cases(
-    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """获取当前用户的所有案件（排除已删除）。"""
+    """获取所有案件（排除已删除）。"""
     result = await db.execute(
         select(Case)
-        .where(Case.user_id == current_user.id, Case.status != "deleted")
+        .where(Case.status != "deleted")
         .order_by(Case.updated_at.desc())
     )
     cases = result.scalars().all()
@@ -43,11 +40,10 @@ async def list_cases(
 @router.get("/{case_id}", response_model=CaseDetail)
 async def get_case(
     case_id: str,
-    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """获取单个案件详情。"""
-    result = await db.execute(select(Case).where(Case.id == case_id, Case.user_id == current_user.id))
+    result = await db.execute(select(Case).where(Case.id == case_id))
     case = result.scalar_one_or_none()
     if case is None:
         raise HTTPException(status_code=404, detail="案件不存在")
@@ -58,11 +54,10 @@ async def get_case(
 async def update_case(
     case_id: str,
     req: CaseUpdate,
-    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """更新案件信息。"""
-    result = await db.execute(select(Case).where(Case.id == case_id, Case.user_id == current_user.id))
+    result = await db.execute(select(Case).where(Case.id == case_id))
     case = result.scalar_one_or_none()
     if case is None:
         raise HTTPException(status_code=404, detail="案件不存在")
@@ -82,11 +77,10 @@ async def update_case(
 @router.delete("/{case_id}")
 async def delete_case(
     case_id: str,
-    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """软删除案件。"""
-    result = await db.execute(select(Case).where(Case.id == case_id, Case.user_id == current_user.id))
+    result = await db.execute(select(Case).where(Case.id == case_id))
     case = result.scalar_one_or_none()
     if case is None:
         raise HTTPException(status_code=404, detail="案件不存在")

@@ -2,13 +2,10 @@
 import uuid
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import select
 
 from app.database import AsyncSessionLocal
-from app.utils.security import decode_token
-from app.models.user import User
 from app.models.case import Case
 from app.models.compensation import CompensationReport
 from app.schemas.compensation import CompensationRequest, CompensationResponse
@@ -17,36 +14,12 @@ from app.agents.base import AgentContext
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/compensation", tags=["赔偿计算"])
-security = HTTPBearer()
-
-
-async def _get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> User:
-    """认证依赖：解析 JWT 并返回当前用户。"""
-    try:
-        payload = decode_token(credentials.credentials)
-        if payload.get("type") == "refresh":
-            raise HTTPException(status_code=401, detail="请使用 access token")
-        user_id = payload["sub"]
-    except HTTPException:
-        raise
-    except Exception:
-        raise HTTPException(status_code=401, detail="无效的认证令牌")
-
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
-        user = result.scalar_one_or_none()
-        if user is None:
-            raise HTTPException(status_code=401, detail="用户不存在")
-        return user
 
 
 @router.post("/calculate", status_code=201)
 async def calculate_compensation(
     req: CompensationRequest,
     request: Request,
-    current_user: User = Depends(_get_current_user),
 ):
     """调 CompensationCalcAgent 计算赔偿，保存结果到 compensation_reports。"""
     try:
@@ -55,12 +28,9 @@ async def calculate_compensation(
         raise HTTPException(status_code=400, detail="无效的 case_id 格式")
 
     async with AsyncSessionLocal() as db:
-        # 验证案件归属
+        # 查询案件（不校验所有权）
         result = await db.execute(
-            select(Case).where(
-                Case.id == case_uuid,
-                Case.user_id == current_user.id,
-            )
+            select(Case).where(Case.id == case_uuid)
         )
         case = result.scalar_one_or_none()
         if case is None:

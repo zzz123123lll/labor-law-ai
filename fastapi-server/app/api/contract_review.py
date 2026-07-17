@@ -3,15 +3,12 @@ import uuid
 import os
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File
 from sqlalchemy import select
 
 import aiofiles
 
 from app.database import AsyncSessionLocal
-from app.utils.security import decode_token
-from app.models.user import User
 from app.models.case import Case
 from app.models.contract_review import ContractReview
 from app.schemas.contract import ContractReviewResponse
@@ -20,33 +17,10 @@ from app.agents.base import AgentContext
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/contract", tags=["合同审查"])
-security = HTTPBearer()
 
 # 上传目录
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-
-async def _get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> User:
-    """认证依赖：解析 JWT 并返回当前用户。"""
-    try:
-        payload = decode_token(credentials.credentials)
-        if payload.get("type") == "refresh":
-            raise HTTPException(status_code=401, detail="请使用 access token")
-        user_id = payload["sub"]
-    except HTTPException:
-        raise
-    except Exception:
-        raise HTTPException(status_code=401, detail="无效的认证令牌")
-
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
-        user = result.scalar_one_or_none()
-        if user is None:
-            raise HTTPException(status_code=401, detail="用户不存在")
-        return user
 
 
 async def _ocr_file(file_path: str) -> str:
@@ -82,14 +56,13 @@ async def upload_contract(
     request: Request,
     file: UploadFile = File(...),
     case_id: str | None = None,
-    current_user: User = Depends(_get_current_user),
 ):
     """上传合同文件，执行 OCR 提取文本，创建审查记录。"""
     file_url, file_path = await _save_upload(file)
     ocr_text = await _ocr_file(file_path)
 
     async with AsyncSessionLocal() as db:
-        # 如果指定了 case_id，验证归属
+        # 如果指定了 case_id，验证存在
         review_case_id = None
         if case_id:
             try:
@@ -97,10 +70,7 @@ async def upload_contract(
             except ValueError:
                 raise HTTPException(status_code=400, detail="无效的 case_id 格式")
             result = await db.execute(
-                select(Case).where(
-                    Case.id == case_uuid,
-                    Case.user_id == current_user.id,
-                )
+                select(Case).where(Case.id == case_uuid)
             )
             case = result.scalar_one_or_none()
             if case is None:
@@ -130,7 +100,6 @@ async def upload_contract(
 async def review_contract(
     file_id: str,
     request: Request,
-    current_user: User = Depends(_get_current_user),
 ):
     """调 ContractReviewAgent 执行 AI 审查，更新 findings/score/risk_level/full_report。"""
     try:
@@ -150,15 +119,11 @@ async def review_contract(
         case_profile = {}
         if review.case_id:
             case_result = await db.execute(
-                select(Case).where(
-                    Case.id == review.case_id,
-                    Case.user_id == current_user.id,
-                )
+                select(Case).where(Case.id == review.case_id)
             )
             case = case_result.scalar_one_or_none()
-            if case is None:
-                raise HTTPException(status_code=404, detail="案件不存在或不属于当前用户")
-            case_profile = case.profile or {}
+            if case is not None:
+                case_profile = case.profile or {}
 
         # 获取 ContractReviewAgent
         registry = getattr(request.app.state, "agent_registry", None)
@@ -205,7 +170,6 @@ async def review_contract(
 @router.get("/report/{id}")
 async def get_contract_report(
     id: str,
-    current_user: User = Depends(_get_current_user),
 ):
     """返回审查报告。"""
     try:

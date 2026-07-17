@@ -13,9 +13,29 @@
     在 app/ai/ 下新建适配器类，继承 BaseLLMAdapter 实现 chat()，
     然后在 ADAPTERS 字典中注册。
 """
+import sys
+import json
+from pathlib import Path
+
 from app.ai.base import BaseLLMAdapter
 from app.ai.deepseek import DeepSeekAdapter
 from app.config import settings
+
+
+def _get_runtime_api_key() -> str:
+    """从本地配置文件读取运行时 API Key，优先于 .env。"""
+    if getattr(sys, 'frozen', False):
+        config_path = Path(sys.executable).parent / "data" / "app_settings.json"
+    else:
+        config_path = Path(__file__).parent.parent.parent / "app_settings.json"
+    if config_path.exists():
+        try:
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+            return config.get("llm_api_key", "")
+        except (json.JSONDecodeError, OSError):
+            return ""
+    return ""
+
 
 # 所有适配器注册表
 ADAPTERS: dict[str, type[BaseLLMAdapter]] = {

@@ -3,15 +3,12 @@ import uuid
 import os
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File
 from sqlalchemy import select
 
 import aiofiles
 
 from app.database import AsyncSessionLocal
-from app.utils.security import decode_token
-from app.models.user import User
 from app.models.case import Case
 from app.models.evidence import EvidenceFile
 from app.schemas.evidence import EvidenceUploadResponse, EvidenceListResponse
@@ -20,7 +17,6 @@ from app.agents.base import AgentContext
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/evidence", tags=["证据分析"])
-security = HTTPBearer()
 
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -34,28 +30,6 @@ FILE_TYPE_LABELS: dict[str, str] = {
     ".bmp": "image", ".webp": "image", ".pdf": "pdf",
     ".doc": "document", ".docx": "document",
 }
-
-
-async def _get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> User:
-    """认证依赖：解析 JWT 并返回当前用户。"""
-    try:
-        payload = decode_token(credentials.credentials)
-        if payload.get("type") == "refresh":
-            raise HTTPException(status_code=401, detail="请使用 access token")
-        user_id = payload["sub"]
-    except HTTPException:
-        raise
-    except Exception:
-        raise HTTPException(status_code=401, detail="无效的认证令牌")
-
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
-        user = result.scalar_one_or_none()
-        if user is None:
-            raise HTTPException(status_code=401, detail="用户不存在")
-        return user
 
 
 async def _ocr_file(file_path: str) -> str:
@@ -116,9 +90,8 @@ async def upload_evidence(
     request: Request,
     file: UploadFile = File(...),
     case_id: str = ...,
-    current_user: User = Depends(_get_current_user),
 ):
-    """上传证据文件，验证案件归属，OCR 提取文本。"""
+    """上传证据文件，验证案件存在，OCR 提取文本。"""
     _validate_file(file)
     try:
         case_uuid = uuid.UUID(case_id)
@@ -126,12 +99,9 @@ async def upload_evidence(
         raise HTTPException(status_code=400, detail="无效的 case_id 格式")
 
     async with AsyncSessionLocal() as db:
-        # 验证案件归属
+        # 验证案件存在
         result = await db.execute(
-            select(Case).where(
-                Case.id == case_uuid,
-                Case.user_id == current_user.id,
-            )
+            select(Case).where(Case.id == case_uuid)
         )
         case = result.scalar_one_or_none()
         if case is None:
@@ -165,7 +135,6 @@ async def upload_evidence(
 async def analyze_evidence(
     file_id: str,
     request: Request,
-    current_user: User = Depends(_get_current_user),
 ):
     """调 EvidenceAnalyzeAgent 执行 AI 分析，更新 evidence.analysis。"""
     try:
@@ -181,18 +150,15 @@ async def analyze_evidence(
         if evidence is None:
             raise HTTPException(status_code=404, detail="证据记录不存在")
 
-        # 验证 case 归属
-        case_result = await db.execute(
-            select(Case).where(
-                Case.id == evidence.case_id,
-                Case.user_id == current_user.id,
+        # 获取关联案件的 profile
+        case_profile = {}
+        if evidence.case_id:
+            case_result = await db.execute(
+                select(Case).where(Case.id == evidence.case_id)
             )
-        )
-        case = case_result.scalar_one_or_none()
-        if case is None:
-            raise HTTPException(status_code=404, detail="案件不存在或不属于当前用户")
-
-        case_profile = case.profile or {}
+            case = case_result.scalar_one_or_none()
+            if case is not None:
+                case_profile = case.profile or {}
 
         # 获取 EvidenceAnalyzeAgent
         registry = getattr(request.app.state, "agent_registry", None)
@@ -237,7 +203,6 @@ async def analyze_evidence(
 @router.get("/list/{case_id}")
 async def list_evidence(
     case_id: str,
-    current_user: User = Depends(_get_current_user),
 ):
     """返回指定案件的证据清单。"""
     try:
@@ -246,17 +211,6 @@ async def list_evidence(
         raise HTTPException(status_code=400, detail="无效的 case_id 格式")
 
     async with AsyncSessionLocal() as db:
-        # 验证案件归属
-        result = await db.execute(
-            select(Case).where(
-                Case.id == case_uuid,
-                Case.user_id == current_user.id,
-            )
-        )
-        case = result.scalar_one_or_none()
-        if case is None:
-            raise HTTPException(status_code=404, detail="案件不存在")
-
         # 查询证据
         result = await db.execute(
             select(EvidenceFile)

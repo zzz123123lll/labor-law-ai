@@ -62,6 +62,18 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
+import sys
+from pathlib import Path
+
+# 打包后的数据目录
+if getattr(sys, 'frozen', False):
+    _BASE_DIR = Path(sys.executable).parent
+else:
+    _BASE_DIR = Path(__file__).parent.parent
+
+# 数据库默认改到数据目录下
+settings.DATABASE_URL = f"sqlite+aiosqlite:///{_BASE_DIR / 'data' / 'laborlaw.db'}"
+
 # 向后兼容：旧的 DEEPSEEK_API_KEY → 新的 LLM_API_KEY
 if not settings.LLM_API_KEY and settings.DEEPSEEK_API_KEY:
     settings.LLM_API_KEY = settings.DEEPSEEK_API_KEY

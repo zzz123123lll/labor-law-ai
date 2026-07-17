@@ -5,15 +5,12 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy import select, func
+from pydantic import BaseModel, Field
+from sqlalchemy import select
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from app.database import AsyncSessionLocal, get_db
-from app.config import settings
-from app.utils.security import decode_token
-from app.models.user import User
+from app.database import AsyncSessionLocal
 from app.models.case import Case
 from app.models.message import CaseMessage
 from app.schemas.consultation import ChatRequest
@@ -23,7 +20,6 @@ from app.agents.router import IntentRouter
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/consultation", tags=["AI咨询"])
-security = HTTPBearer()
 
 # AI 咨询是最贵重的接口，单独限制 10次/分钟
 ai_limiter = Limiter(key_func=get_remote_address)
@@ -36,46 +32,7 @@ async def chat(
     request: Request,
 ):
     """SSE 流式 AI 对话。不依赖 get_db 注入，手动管理会话以支持流式返回。"""
-    # 从 token 解析用户
-    token = request.headers.get("Authorization", "").replace("Bearer ", "")
-    if not token:
-        raise HTTPException(401, "未提供认证令牌")
-    try:
-        payload = decode_token(token)
-        if payload.get("type") == "refresh":
-            raise HTTPException(401, "请使用 access token")
-        user_id = payload["sub"]
-    except HTTPException:
-        raise
-    except Exception:
-        raise HTTPException(401, "无效的认证令牌")
-
     async with AsyncSessionLocal() as db:
-        user_result = await db.execute(select(User).where(User.id == uuid_lib.UUID(user_id)))
-        user = user_result.scalar_one_or_none()
-        if not user:
-            raise HTTPException(401, "用户不存在")
-
-        # 免费版限制：每天 N 次 AI 咨询
-        if not user.is_vip:
-            from datetime import datetime, timezone, timedelta
-            today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-            cnt_result = await db.execute(
-                select(func.count(CaseMessage.id))
-                .join(Case)
-                .where(
-                    Case.user_id == user.id,
-                    CaseMessage.role == "user",
-                    CaseMessage.created_at >= today,
-                )
-            )
-            daily_count = cnt_result.scalar() or 0
-            if daily_count >= settings.FREE_DAILY_CHAT_LIMIT:
-                raise HTTPException(
-                    429,
-                    detail=f"免费版每日 {settings.FREE_DAILY_CHAT_LIMIT} 次 AI 咨询已达上限。升级专业版即可无限使用。",
-                )
-
         # 获取或创建案件
         if req.case_id:
             try:
@@ -83,13 +40,13 @@ async def chat(
             except (ValueError, AttributeError):
                 raise HTTPException(400, "案件ID格式无效")
             case_result = await db.execute(
-                select(Case).where(Case.id == case_uuid, Case.user_id == user.id)
+                select(Case).where(Case.id == case_uuid)
             )
             case = case_result.scalar_one_or_none()
             if not case:
                 raise HTTPException(404, "案件不存在")
         else:
-            case = Case(user_id=uuid_lib.UUID(user_id) if isinstance(user_id, str) else user_id, title="新案件")
+            case = Case(title="新案件")
             db.add(case)
             await db.flush()
 
@@ -102,6 +59,9 @@ async def chat(
         await db.refresh(case)
 
         profile = case.profile or {}
+        # 如果有引导式入口选的问题类型，自动补充上下文
+        if req.message and profile.get("problem_type"):
+            req.message = f"【问题类型：{profile['problem_type']}】\n{req.message}"
         missing = _check_missing_fields(profile)
 
         if missing and not req.skip_collection:
@@ -134,16 +94,8 @@ async def chat(
 
 
 @router.get("/{case_id}/history")
-async def get_history(case_id: str, request: Request):
+async def get_history(case_id: str):
     """获取案件历史消息。"""
-    token = request.headers.get("Authorization", "").replace("Bearer ", "")
-    if not token:
-        raise HTTPException(401, "未提供认证令牌")
-    try:
-        payload = decode_token(token)
-    except Exception:
-        raise HTTPException(401, "无效的认证令牌")
-
     async with AsyncSessionLocal() as db:
         result = await db.execute(
             select(CaseMessage)
@@ -163,13 +115,42 @@ async def get_history(case_id: str, request: Request):
         ]
 
 
+class StartRequest(BaseModel):
+    problem_type: str = Field(min_length=1, max_length=64)
+    company_name: str = Field(min_length=1, max_length=128)
+    city: str = Field(min_length=1, max_length=64)
+    hire_date: str = Field(min_length=1, max_length=32)
+    monthly_salary: str = Field(min_length=1, max_length=32)
+
+
+@router.post("/start")
+async def start_consultation(req: StartRequest):
+    """引导式咨询入口：一步创建案件 + 填充 profile，返回 case_id 供后续 SSE 对话使用。"""
+    async with AsyncSessionLocal() as db:
+        case = Case(
+            title=f"{req.problem_type}纠纷",
+            profile={
+                "problem_type": req.problem_type,
+                "company_name": req.company_name,
+                "city": req.city,
+                "hire_date": req.hire_date,
+                "monthly_salary": req.monthly_salary,
+            },
+        )
+        db.add(case)
+        await db.commit()
+        await db.refresh(case)
+        return {"case_id": str(case.id)}
+
+
 def _check_missing_fields(profile: dict) -> list[str]:
-    required = ["province", "city", "hire_date", "monthly_salary"]
+    required = ["company_name", "province", "city", "hire_date", "monthly_salary"]
     return [f for f in required if f not in profile or not profile[f]]
 
 
 async def _stream_form_collection(missing: list[str], case_id):
     field_labels = {
+        "company_name": "公司全称",
         "province": "工作所在省份",
         "city": "工作所在城市",
         "hire_date": "入职时间（如 2024-03）",

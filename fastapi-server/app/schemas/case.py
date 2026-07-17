@@ -1,5 +1,6 @@
 """案件相关 Pydantic 模型。"""
 from datetime import datetime
+import uuid
 
 from pydantic import BaseModel, ConfigDict
 
@@ -15,7 +16,7 @@ class CaseUpdate(BaseModel):
 
 
 class CaseSummary(BaseModel):
-    id: str
+    id: uuid.UUID
     title: str
     stage: str
     risk_level: str | None
@@ -26,8 +27,8 @@ class CaseSummary(BaseModel):
 
 
 class CaseDetail(BaseModel):
-    id: str
-    user_id: str
+    id: uuid.UUID
+    user_id: uuid.UUID | None
     title: str
     stage: str
     status: str

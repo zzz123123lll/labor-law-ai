@@ -4,14 +4,11 @@ import logging
 import tempfile
 import os
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy import select
 
 from app.database import AsyncSessionLocal
-from app.utils.security import decode_token
-from app.models.user import User
 from app.models.case import Case
 from app.models.document import GeneratedDocument
 from app.schemas.document import DocumentGenerateRequest, DocumentResponse
@@ -20,32 +17,9 @@ from app.agents.base import AgentContext
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/document", tags=["文书生成"])
-security = HTTPBearer()
 
 # 合法文书类型
 VALID_DOC_TYPES = {"arbitration_request", "complaint_letter", "evidence_list"}
-
-
-async def _get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> User:
-    """认证依赖：解析 JWT 并返回当前用户。"""
-    try:
-        payload = decode_token(credentials.credentials)
-        if payload.get("type") == "refresh":
-            raise HTTPException(status_code=401, detail="请使用 access token")
-        user_id = payload["sub"]
-    except HTTPException:
-        raise
-    except Exception:
-        raise HTTPException(status_code=401, detail="无效的认证令牌")
-
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
-        user = result.scalar_one_or_none()
-        if user is None:
-            raise HTTPException(status_code=401, detail="用户不存在")
-        return user
 
 
 def _doc_type_label(doc_type: str) -> str:
@@ -62,7 +36,6 @@ def _doc_type_label(doc_type: str) -> str:
 async def generate_document(
     req: DocumentGenerateRequest,
     request: Request,
-    current_user: User = Depends(_get_current_user),
 ):
     """调 DocumentDraftAgent 生成文书，保存到 generated_documents。"""
     if req.doc_type not in VALID_DOC_TYPES:
@@ -77,12 +50,9 @@ async def generate_document(
         raise HTTPException(status_code=400, detail="无效的 case_id 格式")
 
     async with AsyncSessionLocal() as db:
-        # 验证案件归属
+        # 查询案件（不校验所有权）
         result = await db.execute(
-            select(Case).where(
-                Case.id == case_uuid,
-                Case.user_id == current_user.id,
-            )
+            select(Case).where(Case.id == case_uuid)
         )
         case = result.scalar_one_or_none()
         if case is None:
@@ -145,7 +115,6 @@ async def generate_document(
 @router.get("/download/{id}")
 async def download_document(
     id: str,
-    current_user: User = Depends(_get_current_user),
 ):
     """返回文书的 Markdown 内容（PDF 生成后期再做）。"""
     try:
@@ -174,7 +143,6 @@ async def download_document(
 @router.get("/download/{id}/pdf")
 async def download_pdf(
     id: str,
-    current_user: User = Depends(_get_current_user),
 ):
     """下载文书的 PDF 版本（格式化排版 + 页眉页脚）。"""
     try:
@@ -264,4 +232,3 @@ def _markdown_to_pdf(title: str, markdown_content: str) -> str:
 def _now_str() -> str:
     from datetime import datetime, timezone
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-

@@ -15,13 +15,20 @@ class DeepSeekAdapter(BaseLLMAdapter):
 
     name = "deepseek"
 
+    @staticmethod
+    def _get_api_key() -> str:
+        """获取 API Key：运行时配置优先，其次 .env。"""
+        from app.ai.adapters import _get_runtime_api_key
+
+        return _get_runtime_api_key() or settings.LLM_API_KEY
+
     async def chat(self, messages: list[ChatMessage], **kwargs) -> ChatResult:
         msgs = [{"role": m.role, "content": m.content} for m in messages]
 
         async with httpx.AsyncClient(timeout=kwargs.get("timeout", 60.0)) as client:
             resp = await client.post(
                 f"{settings.LLM_BASE_URL}/v1/chat/completions",
-                headers={"Authorization": f"Bearer {settings.LLM_API_KEY}"},
+                headers={"Authorization": f"Bearer {self._get_api_key()}"},
                 json={
                     "model": settings.LLM_MODEL,
                     "messages": msgs,

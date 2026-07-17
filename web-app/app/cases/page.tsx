@@ -62,7 +62,7 @@ export default function CasesPage() {
       ) : (
         <div className="space-y-2">
           {cases.map(c => (
-            <a key={c.id} href={`/cases/${c.id}`} className="card flex items-center justify-between no-underline text-inherit hover:border-[var(--color-accent)] transition-colors">
+            <a key={c.id} href={`/cases/detail?id=${c.id}`} className="card flex items-center justify-between no-underline text-inherit hover:border-[var(--color-accent)] transition-colors">
               <div className="min-w-0">
                 <div className="text-sm font-medium truncate">{c.title}</div>
                 <div className="text-xs text-[var(--color-text-muted)] mt-0.5">{c.created_at ? new Date(c.created_at).toLocaleDateString("zh-CN") : "--"}</div>

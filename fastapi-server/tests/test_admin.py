@@ -9,9 +9,6 @@ from app.models.base import Base
 from app.models.user import User
 from app.models.case import Case
 from app.models.order import Order
-from app.api.deps import get_current_admin_user
-
-
 async def _setup_db():
     engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
     async with engine.begin() as conn:
@@ -47,27 +44,7 @@ async def _create_test_data(factory) -> dict:
         return {"admin": admin, "user1": user1, "case1": case1}
 
 
-def _override_admin(admin_user: User):
-    """注入管理员用户到依赖中。"""
-    async def _fake_admin():
-        return admin_user
-    app.dependency_overrides[get_current_admin_user] = _fake_admin
-
-
-def _clear_override():
-    app.dependency_overrides.pop(get_current_admin_user, None)
-
-
 # ─── 测试 ──────────────────────────────────────────────────
-
-
-@pytest.mark.asyncio
-async def test_dashboard_unauthorized():
-    """无认证时返回 401。"""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/api/admin/dashboard")
-    assert resp.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -78,7 +55,6 @@ async def test_dashboard():
     try:
         with pytest.MonkeyPatch().context() as mp:
             mp.setattr("app.api.admin.AsyncSessionLocal", factory)
-            _override_admin(data["admin"])
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 resp = await client.get("/api/admin/dashboard")
@@ -89,7 +65,6 @@ async def test_dashboard():
             assert d["total_revenue"] == pytest.approx(29.90, 0.01)
     finally:
         await engine.dispose()
-        _clear_override()
 
 
 @pytest.mark.asyncio
@@ -100,7 +75,6 @@ async def test_list_users():
     try:
         with pytest.MonkeyPatch().context() as mp:
             mp.setattr("app.api.admin.AsyncSessionLocal", factory)
-            _override_admin(data["admin"])
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 resp = await client.get("/api/admin/users")
@@ -112,7 +86,6 @@ async def test_list_users():
                     continue
     finally:
         await engine.dispose()
-        _clear_override()
 
 
 @pytest.mark.asyncio
@@ -123,7 +96,6 @@ async def test_get_user_detail():
     try:
         with pytest.MonkeyPatch().context() as mp:
             mp.setattr("app.api.admin.AsyncSessionLocal", factory)
-            _override_admin(data["admin"])
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 resp = await client.get(f"/api/admin/users/{data['user1'].id}")
@@ -131,7 +103,6 @@ async def test_get_user_detail():
             assert resp.json()["nickname"] == "测试用户1"
     finally:
         await engine.dispose()
-        _clear_override()
 
 
 @pytest.mark.asyncio
@@ -142,14 +113,12 @@ async def test_get_user_detail_not_found():
     try:
         with pytest.MonkeyPatch().context() as mp:
             mp.setattr("app.api.admin.AsyncSessionLocal", factory)
-            _override_admin(data["admin"])
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 resp = await client.get(f"/api/admin/users/{uuid.uuid4()}")
             assert resp.status_code == 404
     finally:
         await engine.dispose()
-        _clear_override()
 
 
 @pytest.mark.asyncio
@@ -160,7 +129,6 @@ async def test_toggle_vip():
     try:
         with pytest.MonkeyPatch().context() as mp:
             mp.setattr("app.api.admin.AsyncSessionLocal", factory)
-            _override_admin(data["admin"])
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 resp1 = await client.post(f"/api/admin/users/{data['user1'].id}/toggle-vip")
@@ -172,7 +140,6 @@ async def test_toggle_vip():
                 assert resp2.json()["is_vip"] is False
     finally:
         await engine.dispose()
-        _clear_override()
 
 
 @pytest.mark.asyncio
@@ -183,7 +150,6 @@ async def test_list_all_cases():
     try:
         with pytest.MonkeyPatch().context() as mp:
             mp.setattr("app.api.admin.AsyncSessionLocal", factory)
-            _override_admin(data["admin"])
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 resp = await client.get("/api/admin/cases")
@@ -193,7 +159,6 @@ async def test_list_all_cases():
             assert "title" in cases[0]
     finally:
         await engine.dispose()
-        _clear_override()
 
 
 @pytest.mark.asyncio
@@ -204,7 +169,6 @@ async def test_get_case_detail():
     try:
         with pytest.MonkeyPatch().context() as mp:
             mp.setattr("app.api.admin.AsyncSessionLocal", factory)
-            _override_admin(data["admin"])
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 resp = await client.get(f"/api/admin/cases/{data['case1'].id}")
@@ -215,7 +179,6 @@ async def test_get_case_detail():
             assert "messages" in detail
     finally:
         await engine.dispose()
-        _clear_override()
 
 
 @pytest.mark.asyncio
@@ -226,11 +189,9 @@ async def test_get_case_detail_not_found():
     try:
         with pytest.MonkeyPatch().context() as mp:
             mp.setattr("app.api.admin.AsyncSessionLocal", factory)
-            _override_admin(data["admin"])
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 resp = await client.get(f"/api/admin/cases/{uuid.uuid4()}")
             assert resp.status_code == 404
     finally:
         await engine.dispose()
-        _clear_override()
