@@ -1,7 +1,7 @@
 """赔偿计算 Agent——计算双倍工资、经济补偿、违法解除赔偿金、加班费。"""
-from app.agents.base import BaseAgent, AgentContext
-from app.legal_engine.law_store import LawArticle
+from app.agents.base import AgentContext, BaseAgent
 from app.legal_engine.case_store import Precedent
+from app.legal_engine.law_store import LawArticle
 
 
 class CompensationCalcAgent(BaseAgent):

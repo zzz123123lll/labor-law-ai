@@ -19,13 +19,3 @@ updates:
     labels:
       - "dependencies"
       - "javascript"
-
-  - package-ecosystem: "npm"
-    directory: "/admin-panel"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    target-branch: "master"
-    labels:
-      - "dependencies"
-      - "javascript"

@@ -1,7 +1,8 @@
 """生成文书模型。"""
+import uuid
+
 from sqlalchemy import ForeignKey, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-import uuid
 
 from app.models.base import Base, TimestampMixin
 

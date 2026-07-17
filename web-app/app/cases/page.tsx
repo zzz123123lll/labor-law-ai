@@ -31,12 +31,13 @@ const riskBadge: Record<string, string> = {
 export default function CasesPage() {
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     apiFetch("/api/cases")
       .then(r => r.json())
       .then(data => { if (Array.isArray(data)) setCases(data); })
-      .catch(() => {})
+      .catch(() => setError("加载失败，请确认后端已启动"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -54,10 +55,19 @@ export default function CasesPage() {
         </div>
       ) : cases.length === 0 ? (
         <div className="card text-center py-10">
-          <svg className="mx-auto mb-3" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
-          <p className="text-sm text-[var(--color-text-muted)]">暂无案件</p>
-          <p className="text-xs text-[var(--color-text-muted)] mt-1 mb-4">遇到劳动问题？开始 AI 咨询</p>
-          <a href="/consultation" className="btn-primary no-underline text-sm inline-block">开始咨询</a>
+          {error ? (
+            <>
+              <p className="text-sm text-[var(--color-text-muted)]">{error}</p>
+              <button onClick={() => window.location.reload()} className="btn-primary text-xs mt-2">重试</button>
+            </>
+          ) : (
+            <>
+              <svg className="mx-auto mb-3" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+              <p className="text-sm text-[var(--color-text-muted)]">暂无案件</p>
+              <p className="text-xs text-[var(--color-text-muted)] mt-1 mb-4">遇到劳动问题？开始 AI 咨询</p>
+              <a href="/consultation" className="btn-primary no-underline text-sm inline-block">开始咨询</a>
+            </>
+          )}
         </div>
       ) : (
         <div className="space-y-2">

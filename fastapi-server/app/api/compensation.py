@@ -1,15 +1,15 @@
 """赔偿计算 API：AI 赔偿计算器。"""
-import uuid
 import logging
+import uuid
 
 from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import select
 
+from app.agents.base import AgentContext
 from app.database import AsyncSessionLocal
 from app.models.case import Case
 from app.models.compensation import CompensationReport
 from app.schemas.compensation import CompensationRequest, CompensationResponse
-from app.agents.base import AgentContext
 
 logger = logging.getLogger(__name__)
 

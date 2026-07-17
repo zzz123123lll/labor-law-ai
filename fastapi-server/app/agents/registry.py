@@ -1,12 +1,12 @@
 """Agent 注册表：按名称获取 Agent 实例。"""
+from app.agents.arbitration_guide import ArbitrationGuideAgent
 from app.agents.case_analysis import CaseAnalysisAgent
-from app.agents.violation_detect import ViolationDetectAgent
 from app.agents.compensation_calc import CompensationCalcAgent
 from app.agents.contract_review import ContractReviewAgent
-from app.agents.evidence_analyze import EvidenceAnalyzeAgent
 from app.agents.document_draft import DocumentDraftAgent
-from app.agents.arbitration_guide import ArbitrationGuideAgent
+from app.agents.evidence_analyze import EvidenceAnalyzeAgent
 from app.agents.strategy_plan import StrategyPlanAgent
+from app.agents.violation_detect import ViolationDetectAgent
 
 
 class AgentRegistry:

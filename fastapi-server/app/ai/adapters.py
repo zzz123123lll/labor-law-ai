@@ -13,8 +13,8 @@
     在 app/ai/ 下新建适配器类，继承 BaseLLMAdapter 实现 chat()，
     然后在 ADAPTERS 字典中注册。
 """
-import sys
 import json
+import sys
 from pathlib import Path
 
 from app.ai.base import BaseLLMAdapter

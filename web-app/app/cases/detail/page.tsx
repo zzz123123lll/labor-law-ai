@@ -11,13 +11,14 @@ function CaseDetailInner() {
   const caseId = searchParams.get("id") || "";
   const [detail, setDetail] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!caseId) { setLoading(false); return; }
     apiFetch(`/api/cases/${caseId}`)
       .then(r => r.json())
       .then(data => setDetail(data))
-      .catch(() => {})
+      .catch(() => setError("加载失败，请确认后端已启动"))
       .finally(() => setLoading(false));
   }, [caseId]);
 
@@ -26,7 +27,18 @@ function CaseDetailInner() {
   }
 
   if (!detail) {
-    return <div className="p-4 text-center py-20 text-sm text-[var(--color-text-muted)]">案件不存在</div>;
+    return (
+      <div className="p-4 text-center py-20 text-sm text-[var(--color-text-muted)]">
+        {error ? (
+          <div className="card text-center py-8 text-sm text-[var(--color-text-muted)]">
+            <p>{error}</p>
+            <button onClick={() => window.location.reload()} className="btn-primary text-xs mt-2">重试</button>
+          </div>
+        ) : (
+          "案件不存在"
+        )}
+      </div>
+    );
   }
 
   const profile = detail.profile || {};

@@ -1,7 +1,7 @@
 """维权路线 Agent——规划完整的维权路线图。"""
-from app.agents.base import BaseAgent, AgentContext
-from app.legal_engine.law_store import LawArticle
+from app.agents.base import AgentContext, BaseAgent
 from app.legal_engine.case_store import Precedent
+from app.legal_engine.law_store import LawArticle
 
 
 class StrategyPlanAgent(BaseAgent):

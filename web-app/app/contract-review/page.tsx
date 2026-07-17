@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { apiFetch } from "@/lib/api";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+
 export default function ContractReviewPage() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -24,7 +26,7 @@ export default function ContractReviewPage() {
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
       // 上传文件
-      const upResp = await fetch("http://localhost:8000/api/contract/upload", { method: "POST", headers, body: form });
+      const upResp = await fetch(`${API_BASE}/api/contract/upload`, { method: "POST", headers, body: form });
       if (!upResp.ok) { setError("上传失败"); setUploading(false); return; }
       const uploaded = await upResp.json();
 

@@ -1,18 +1,17 @@
 """证据分析 API：上传证据文件 + OCR + AI 分析 + 证据清单。"""
-import uuid
-import os
 import logging
-
-from fastapi import APIRouter, HTTPException, Request, UploadFile, File
-from sqlalchemy import select
+import os
+import uuid
 
 import aiofiles
+from fastapi import APIRouter, File, HTTPException, Request, UploadFile
+from sqlalchemy import select
 
+from app.agents.base import AgentContext
 from app.database import AsyncSessionLocal
 from app.models.case import Case
 from app.models.evidence import EvidenceFile
-from app.schemas.evidence import EvidenceUploadResponse, EvidenceListResponse
-from app.agents.base import AgentContext
+from app.schemas.evidence import EvidenceListResponse, EvidenceUploadResponse
 
 logger = logging.getLogger(__name__)
 

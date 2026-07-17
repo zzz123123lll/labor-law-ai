@@ -5,7 +5,7 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
-    depends_on: [backend, web, admin]
+    depends_on: [backend, web]
 
   backend:
     build: ./fastapi-server
@@ -17,13 +17,6 @@ services:
   web:
     build:
       context: ./web-app
-      dockerfile: Dockerfile
-    environment:
-      NEXT_PUBLIC_API_URL: https://your-domain.com
-
-  admin:
-    build:
-      context: ./admin-panel
       dockerfile: Dockerfile
     environment:
       NEXT_PUBLIC_API_URL: https://your-domain.com

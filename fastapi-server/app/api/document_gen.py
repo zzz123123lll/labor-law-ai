@@ -1,18 +1,18 @@
 """文书生成 API：AI 起草法律文书 + Markdown/PDF 下载。"""
-import uuid
 import logging
 import tempfile
-import os
+import uuid
+from datetime import UTC
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 
+from app.agents.base import AgentContext
 from app.database import AsyncSessionLocal
 from app.models.case import Case
 from app.models.document import GeneratedDocument
 from app.schemas.document import DocumentGenerateRequest, DocumentResponse
-from app.agents.base import AgentContext
 
 logger = logging.getLogger(__name__)
 
@@ -230,5 +230,5 @@ def _markdown_to_pdf(title: str, markdown_content: str) -> str:
 
 
 def _now_str() -> str:
-    from datetime import datetime, timezone
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    from datetime import datetime
+    return datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")

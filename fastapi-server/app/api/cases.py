@@ -1,11 +1,11 @@
 """案件 CRUD API。"""
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
 from app.models.case import Case
-from app.schemas.case import CaseCreate, CaseUpdate, CaseSummary, CaseDetail
+from app.schemas.case import CaseCreate, CaseDetail, CaseSummary, CaseUpdate
 
 router = APIRouter(prefix="/api/cases", tags=["案件"])
 

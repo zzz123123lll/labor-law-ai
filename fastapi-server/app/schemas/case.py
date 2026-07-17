@@ -1,6 +1,6 @@
 """案件相关 Pydantic 模型。"""
-from datetime import datetime
 import uuid
+from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 

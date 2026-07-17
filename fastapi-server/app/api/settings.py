@@ -1,6 +1,7 @@
 """本地设置 API——AI Key 等运行时配置。"""
 import json
 from pathlib import Path
+
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 

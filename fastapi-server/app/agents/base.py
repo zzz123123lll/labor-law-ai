@@ -1,13 +1,12 @@
 """Agent 基类——所有 AI Agent 的抽象父类。"""
 import re
-import json
-from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 
-from app.ai.base import ChatMessage, LLMError
 from app.ai.adapters import get_llm
+from app.ai.base import ChatMessage, LLMError
+from app.legal_engine.case_store import CaseStore, Precedent
 from app.legal_engine.law_store import LawArticle, LawStore
-from app.legal_engine.case_store import Precedent, CaseStore
 
 
 @dataclass

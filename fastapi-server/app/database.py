@@ -1,5 +1,6 @@
 """数据库引擎与会话管理。开发环境默认 SQLite，生产环境用 PostgreSQL。"""
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
 from app.config import settings
 
 engine = create_async_engine(

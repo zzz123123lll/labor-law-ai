@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { apiFetch } from "@/lib/api";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+
 export default function EvidenceUploadPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
@@ -23,7 +25,7 @@ export default function EvidenceUploadPage() {
         const headers: Record<string, string> = {};
         if (token) headers["Authorization"] = `Bearer ${token}`;
 
-        const upResp = await fetch("http://localhost:8000/api/evidence/upload", { method: "POST", headers, body: form });
+        const upResp = await fetch(`${API_BASE}/api/evidence/upload`, { method: "POST", headers, body: form });
         if (!upResp.ok) { setError(`${file.name} 上传失败`); continue; }
         const uploaded = await upResp.json();
 

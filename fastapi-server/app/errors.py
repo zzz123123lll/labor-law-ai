@@ -1,10 +1,9 @@
 """统一错误码体系——所有 API 响应格式为 {code, message, data}。"""
 
 from fastapi import Request
-from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
-
 
 # ─── 错误码表 ────────────────────────────────────────────────────
 

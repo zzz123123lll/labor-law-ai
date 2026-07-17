@@ -1,7 +1,7 @@
 """文书起草 Agent——生成劳动仲裁申请书、起诉状等法律文书。"""
-from app.agents.base import BaseAgent, AgentContext
-from app.legal_engine.law_store import LawArticle
+from app.agents.base import AgentContext, BaseAgent
 from app.legal_engine.case_store import Precedent
+from app.legal_engine.law_store import LawArticle
 
 
 class DocumentDraftAgent(BaseAgent):

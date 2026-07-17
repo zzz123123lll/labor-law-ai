@@ -1,7 +1,7 @@
 """证据分析 Agent——分析用户已有证据，评估证据链完整性。"""
-from app.agents.base import BaseAgent, AgentContext
-from app.legal_engine.law_store import LawArticle
+from app.agents.base import AgentContext, BaseAgent
 from app.legal_engine.case_store import Precedent
+from app.legal_engine.law_store import LawArticle
 
 
 class EvidenceAnalyzeAgent(BaseAgent):

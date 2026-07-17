@@ -1,7 +1,7 @@
 """合同审查 Agent——审查劳动合同条款，识别风险点。"""
-from app.agents.base import BaseAgent, AgentContext
-from app.legal_engine.law_store import LawArticle
+from app.agents.base import AgentContext, BaseAgent
 from app.legal_engine.case_store import Precedent
+from app.legal_engine.law_store import LawArticle
 
 
 class ContractReviewAgent(BaseAgent):

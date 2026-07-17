@@ -1,9 +1,9 @@
 """订单模型。"""
+import uuid
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, Numeric, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-import uuid
 
 from app.models.base import Base, TimestampMixin
 

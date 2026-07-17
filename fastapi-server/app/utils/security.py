@@ -1,11 +1,11 @@
 """安全工具：JWT 签发/验证，手机号加密。"""
-from datetime import datetime, timedelta, timezone
 import base64
 import hashlib
+from datetime import UTC, datetime, timedelta
 
+from cryptography.fernet import Fernet
 from jose import jwt
 from passlib.context import CryptContext
-from cryptography.fernet import Fernet
 
 from app.config import settings
 
@@ -13,7 +13,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def create_access_token(user_id: str) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(UTC) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return jwt.encode(
         {"sub": user_id, "exp": expire},
         settings.JWT_SECRET_KEY,
@@ -22,7 +22,7 @@ def create_access_token(user_id: str) -> str:
 
 
 def create_refresh_token(user_id: str) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    expire = datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     return jwt.encode(
         {"sub": user_id, "exp": expire, "type": "refresh"},
         settings.JWT_SECRET_KEY,

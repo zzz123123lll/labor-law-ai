@@ -1,9 +1,9 @@
 """案件模型。"""
+import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, JSON, Numeric, String, Text, Uuid, func
+from sqlalchemy import JSON, DateTime, ForeignKey, Numeric, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-import uuid
 
 from app.models.base import Base, TimestampMixin
 

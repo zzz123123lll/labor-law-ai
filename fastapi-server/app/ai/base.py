@@ -1,6 +1,6 @@
 """AI 适配器抽象层。所有 LLM 调用通过此层统一管理，方便替换不同模型。"""
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass

@@ -1,7 +1,7 @@
 """案件分析 Agent——全面扫描用户陈述，输出案件摘要。"""
-from app.agents.base import BaseAgent, AgentContext
-from app.legal_engine.law_store import LawArticle
+from app.agents.base import AgentContext, BaseAgent
 from app.legal_engine.case_store import Precedent
+from app.legal_engine.law_store import LawArticle
 
 
 class CaseAnalysisAgent(BaseAgent):

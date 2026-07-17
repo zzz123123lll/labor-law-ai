@@ -1,7 +1,8 @@
 """赔偿计算报告模型。"""
-from sqlalchemy import ForeignKey, JSON, Numeric, Text, Uuid
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 import uuid
+
+from sqlalchemy import JSON, ForeignKey, Numeric, Text, Uuid
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 

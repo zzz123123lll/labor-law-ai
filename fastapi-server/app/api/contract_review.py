@@ -1,18 +1,17 @@
 """合同审查 API：上传合同文件 + AI 审查 + 报告查询。"""
-import uuid
-import os
 import logging
-
-from fastapi import APIRouter, HTTPException, Request, UploadFile, File
-from sqlalchemy import select
+import os
+import uuid
 
 import aiofiles
+from fastapi import APIRouter, File, HTTPException, Request, UploadFile
+from sqlalchemy import select
 
+from app.agents.base import AgentContext
 from app.database import AsyncSessionLocal
 from app.models.case import Case
 from app.models.contract_review import ContractReview
 from app.schemas.contract import ContractReviewResponse
-from app.agents.base import AgentContext
 
 logger = logging.getLogger(__name__)
 

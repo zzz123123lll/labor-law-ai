@@ -1,37 +1,36 @@
 """FastAPI 应用入口。"""
 import sys
-import app.logging_config  # noqa: F401  初始化结构化日志
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from starlette.exceptions import HTTPException as StarletteHTTPException
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.config import settings
-from app.database import engine
-from app.models import Base
-from app.errors import (
-    http_exception_handler,
-    validation_exception_handler,
-    unhandled_exception_handler,
-)
-
+import app.logging_config  # noqa: F401  初始化结构化日志
+from app.api.admin import router as admin_router
 from app.api.auth import router as auth_router
 from app.api.cases import router as cases_router
+from app.api.compensation import router as compensation_router
 from app.api.consultation import router as consultation_router
 from app.api.contract_review import router as contract_review_router
-from app.api.evidence import router as evidence_router
-from app.api.compensation import router as compensation_router
 from app.api.document_gen import router as document_gen_router
+from app.api.evidence import router as evidence_router
 from app.api.payment import router as payment_router
-from app.api.admin import router as admin_router
 from app.api.settings import router as settings_router
+from app.config import settings
+from app.database import engine
+from app.errors import (
+    http_exception_handler,
+    unhandled_exception_handler,
+    validation_exception_handler,
+)
+from app.models import Base
 
 # 速率限制器（内存存储，生产环境建议换 Redis）
 limiter = Limiter(
@@ -46,9 +45,9 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    from app.legal_engine.law_store import law_store
-    from app.legal_engine.case_store import case_store
     from app.agents.registry import AgentRegistry
+    from app.legal_engine.case_store import case_store
+    from app.legal_engine.law_store import law_store
 
     # PyInstaller 打包后资源路径
     if getattr(sys, 'frozen', False):

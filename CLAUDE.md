@@ -10,7 +10,6 @@
 labor-law-ai/
 ├── fastapi-server/    # Python FastAPI 后端
 ├── web-app/           # Next.js 用户端（H5）
-├── admin-panel/       # Next.js 管理后台
 ├── DESIGN.md          # 设计系统
 ├── docker-compose.yml # 部署编排
 └── nginx.conf         # 反向代理

@@ -1,14 +1,14 @@
 """支付 API —— 三档定价 + 订单 + 订阅 + VIP。"""
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 
 from app.database import AsyncSessionLocal
-from app.models.user import User
 from app.models.order import Order
 from app.models.subscription import Subscription
-from app.schemas.payment import PlanInfo, OrderResponse, SubscriptionResponse
+from app.models.user import User
+from app.schemas.payment import OrderResponse, PlanInfo, SubscriptionResponse
 
 router = APIRouter(prefix="/api/payment", tags=["支付"])
 
@@ -88,7 +88,7 @@ async def payment_notify(transaction_id: str, order_id: str):
 
         order.status = "paid"
         order.wx_transaction_id = transaction_id
-        order.paid_at = datetime.now(timezone.utc)
+        order.paid_at = datetime.now(UTC)
 
         # 开通订阅（如果订单有关联用户）
         if order.user_id:
@@ -97,7 +97,7 @@ async def payment_notify(transaction_id: str, order_id: str):
             )
             sub = sub_result.scalar_one_or_none()
 
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             if order.plan_id == "monthly":
                 end_at = now + timedelta(days=30)
             else:

@@ -1,7 +1,7 @@
 """违法识别 Agent——逐条判断公司行为是否违法。"""
-from app.agents.base import BaseAgent, AgentContext
-from app.legal_engine.law_store import LawArticle
+from app.agents.base import AgentContext, BaseAgent
 from app.legal_engine.case_store import Precedent
+from app.legal_engine.law_store import LawArticle
 
 
 class ViolationDetectAgent(BaseAgent):

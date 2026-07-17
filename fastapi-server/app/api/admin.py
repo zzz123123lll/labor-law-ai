@@ -1,14 +1,14 @@
 """管理后台 API。"""
 import uuid
 
-from fastapi import APIRouter, HTTPException, Request
-from sqlalchemy import select, func
+from fastapi import APIRouter, HTTPException
+from sqlalchemy import func, select
 
 from app.database import AsyncSessionLocal
-from app.models.user import User
 from app.models.case import Case
 from app.models.order import Order
-from app.schemas.admin import DashboardStats, AdminUserInfo, AdminCaseSummary
+from app.models.user import User
+from app.schemas.admin import AdminCaseSummary, AdminUserInfo, DashboardStats
 
 router = APIRouter(prefix="/api/admin", tags=["管理后台"])
 

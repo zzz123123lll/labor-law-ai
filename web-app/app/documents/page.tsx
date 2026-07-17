@@ -21,6 +21,7 @@ export default function DocumentsPage() {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     apiFetch("/api/cases")
@@ -40,7 +41,7 @@ export default function DocumentsPage() {
         }
         setDocs(allDocs);
       })
-      .catch(() => {})
+      .catch(() => setError("加载失败，请确认后端已启动"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -71,10 +72,19 @@ export default function DocumentsPage() {
         </div>
       ) : docs.length === 0 ? (
         <div className="card text-center py-10">
-          <svg className="mx-auto mb-3" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="1.5"><path d="M11 5H6a2 2 0 00-2 2v12a2 2 0 002 2h8M12 13l3-3 3 3M21 10v9M12 3l9 4v2l-9-4-9 4V7l9-4z"/></svg>
-          <p className="text-sm text-[var(--color-text-muted)]">暂无文书</p>
-          <p className="text-xs text-[var(--color-text-muted)] mt-1 mb-4">完成 AI 咨询后可自动生成法律文书</p>
-          <a href="/consultation" className="btn-primary no-underline text-sm inline-block">开始咨询</a>
+          {error ? (
+            <>
+              <p className="text-sm text-[var(--color-text-muted)]">{error}</p>
+              <button onClick={() => window.location.reload()} className="btn-primary text-xs mt-2">重试</button>
+            </>
+          ) : (
+            <>
+              <svg className="mx-auto mb-3" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="1.5"><path d="M11 5H6a2 2 0 00-2 2v12a2 2 0 002 2h8M12 13l3-3 3 3M21 10v9M12 3l9 4v2l-9-4-9 4V7l9-4z"/></svg>
+              <p className="text-sm text-[var(--color-text-muted)]">暂无文书</p>
+              <p className="text-xs text-[var(--color-text-muted)] mt-1 mb-4">完成 AI 咨询后可自动生成法律文书</p>
+              <a href="/consultation" className="btn-primary no-underline text-sm inline-block">开始咨询</a>
+            </>
+          )}
         </div>
       ) : (
         <div className="space-y-2">

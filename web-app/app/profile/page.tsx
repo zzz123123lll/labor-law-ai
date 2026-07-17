@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 export default function SettingsPage() {
   const [apiKey, setApiKey] = useState("");
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const key = localStorage.getItem("llm_api_key") || "";
@@ -19,7 +20,7 @@ export default function SettingsPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ llm_api_key: apiKey }),
-    }).catch(() => {}); // 后端不可用时静默失败，localStorage 仍然有效
+    }).catch(() => setError("同步到后端失败，本地已保存")); // 后端不可用时静默失败，localStorage 仍然有效
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -50,6 +51,7 @@ export default function SettingsPage() {
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
         />
+        {error && <p className="text-xs text-[var(--color-danger)] mb-2">{error}</p>}
         <div className="flex gap-2">
           <button onClick={handleSave} className="btn-primary text-xs flex-1">
             {saved ? "已保存" : "保存"}

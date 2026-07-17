@@ -1,21 +1,21 @@
 """AI 咨询对话 API（核心 SSE 流式接口）。"""
 import json
-import uuid as uuid_lib
 import logging
+import uuid as uuid_lib
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import select
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from sqlalchemy import select
 
+from app.agents.base import AgentContext
+from app.agents.router import IntentRouter
 from app.database import AsyncSessionLocal
 from app.models.case import Case
 from app.models.message import CaseMessage
 from app.schemas.consultation import ChatRequest
-from app.agents.base import AgentContext
-from app.agents.router import IntentRouter
 
 logger = logging.getLogger(__name__)
 

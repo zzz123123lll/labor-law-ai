@@ -1,7 +1,8 @@
 """对话消息模型。"""
-from sqlalchemy import ForeignKey, Integer, JSON, String, Text, Uuid
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 import uuid
+
+from sqlalchemy import JSON, ForeignKey, Integer, String, Text, Uuid
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 

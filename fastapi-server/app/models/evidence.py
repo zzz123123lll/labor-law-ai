@@ -1,7 +1,8 @@
 """证据文件模型。"""
-from sqlalchemy import ForeignKey, JSON, String, Text, Uuid
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 import uuid
+
+from sqlalchemy import JSON, ForeignKey, String, Text, Uuid
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 
