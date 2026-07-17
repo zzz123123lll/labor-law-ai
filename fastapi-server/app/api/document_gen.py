@@ -76,17 +76,25 @@ async def generate_document(
         if agent is None:
             raise HTTPException(status_code=500, detail="文书生成 Agent 未注册")
 
-        # 构建上下文（根据 doc_type 调整提示）
-        doc_type_labels = {
-            "arbitration_request": "劳动仲裁申请书",
-            "complaint_letter": "投诉信",
-            "evidence_list": "证据清单",
-        }
-        doc_label = doc_type_labels.get(req.doc_type, req.doc_type)
-        ctx = AgentContext(
-            case_profile=case_profile,
-            user_message=f"请根据我的案件信息，起草一份 {doc_label}。请严格按照法律文书的格式输出。",
-        )
+        # 构建上下文（根据 doc_type 调整提示 + 自动填入案件信息）
+        doc_label = _doc_type_label(req.doc_type)
+        info_parts = []
+        if case_profile.get("company_name"):
+            info_parts.append(f"公司全称：{case_profile['company_name']}")
+        if case_profile.get("city"):
+            info_parts.append(f"工作城市：{case_profile['city']}")
+        if case_profile.get("hire_date"):
+            info_parts.append(f"入职时间：{case_profile['hire_date']}")
+        if case_profile.get("monthly_salary"):
+            info_parts.append(f"月薪：{case_profile['monthly_salary']} 元")
+        if case_profile.get("problem_type"):
+            info_parts.append(f"问题类型：{case_profile['problem_type']}")
+
+        user_msg = f"请根据我的案件信息，起草一份 {doc_label}。请严格按照法律文书的格式输出。"
+        if info_parts:
+            user_msg = "\n".join(info_parts) + "\n\n" + user_msg + "\n已知信息必须自动填入，不要留空。"
+
+        ctx = AgentContext(case_profile=case_profile, user_message=user_msg)
 
         # 执行 Agent
         try:

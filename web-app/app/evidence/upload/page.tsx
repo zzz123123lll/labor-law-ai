@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
@@ -10,6 +10,17 @@ export default function EvidenceUploadPage() {
   const [loading, setLoading] = useState(false);
   const [analyses, setAnalyses] = useState<any[]>([]);
   const [error, setError] = useState("");
+  const [wizardCaseId, setWizardCaseId] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("consultation_wizard");
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data.caseId) setWizardCaseId(data.caseId);
+      }
+    } catch {}
+  }, []);
 
   const handleAnalyze = async () => {
     if (!files.length) return;
@@ -18,12 +29,10 @@ export default function EvidenceUploadPage() {
     setAnalyses([]);
 
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
       for (const file of files) {
         const form = new FormData();
         form.append("file", file);
         const headers: Record<string, string> = {};
-        if (token) headers["Authorization"] = `Bearer ${token}`;
 
         const upResp = await fetch(`${API_BASE}/api/evidence/upload`, { method: "POST", headers, body: form });
         if (!upResp.ok) { setError(`${file.name} 上传失败`); continue; }
@@ -48,6 +57,12 @@ export default function EvidenceUploadPage() {
         </a>
         <h1 className="text-lg font-semibold tracking-tight">证据分析</h1>
       </header>
+
+      {wizardCaseId && (
+        <div className="text-xs bg-[#EFF6FF] text-[var(--color-accent)] px-3 py-2 rounded-sm mb-3">
+          已关联咨询案件，分析结果将同步到该案件
+        </div>
+      )}
 
       <div className="card">
         <p className="text-xs text-[var(--color-text-muted)] mb-4">

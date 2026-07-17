@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
@@ -10,6 +10,18 @@ export default function ContractReviewPage() {
   const [uploading, setUploading] = useState(false);
   const [report, setReport] = useState<any>(null);
   const [error, setError] = useState("");
+  const [wizardCaseId, setWizardCaseId] = useState<string | null>(null);
+  const [reviewId, setReviewId] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("consultation_wizard");
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data.caseId) setWizardCaseId(data.caseId);
+      }
+    } catch {}
+  }, []);
 
   const handleUpload = async () => {
     if (!file) return;
@@ -20,10 +32,9 @@ export default function ContractReviewPage() {
     try {
       const form = new FormData();
       form.append("file", file);
+      if (wizardCaseId) form.append("case_id", wizardCaseId);
 
-      const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
       const headers: Record<string, string> = {};
-      if (token) headers["Authorization"] = `Bearer ${token}`;
 
       // 上传文件
       const upResp = await fetch(`${API_BASE}/api/contract/upload`, { method: "POST", headers, body: form });
@@ -33,7 +44,7 @@ export default function ContractReviewPage() {
       // 发起审查
       const revResp = await apiFetch(`/api/contract/review/${uploaded.id}`, { method: "POST" });
       const data = await revResp.json();
-      if (revResp.ok) { setReport(data); }
+      if (revResp.ok) { setReport(data); if (data.review_id) setReviewId(data.review_id); }
       else { setError(data.detail || "审查失败"); }
     } catch {
       setError("连接后端失败，请确认服务已启动");
@@ -50,6 +61,12 @@ export default function ContractReviewPage() {
         </a>
         <h1 className="text-lg font-semibold tracking-tight">合同审查</h1>
       </header>
+
+      {wizardCaseId && (
+        <div className="text-xs bg-[#EFF6FF] text-[var(--color-accent)] px-3 py-2 rounded-sm mb-3">
+          已关联咨询案件，审查结果将同步到该案件
+        </div>
+      )}
 
       <div className="card">
         <p className="text-xs text-[var(--color-text-muted)] mb-4">上传劳动合同（PDF/Word/图片），AI 自动审查试用期、工资、竞业限制等条款。</p>
