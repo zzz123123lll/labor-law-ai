@@ -11,7 +11,8 @@ a = Analysis(
     datas=[
         # 法律数据
         ('app/legal_engine/data/laws/*.yaml', 'legal_engine/data/laws'),
-        ('app/legal_engine/data/cases/*.yaml', 'legal_engine/data/cases'),
+        # 案例数据通过 case_store.py 加载，无独立 YAML 目录
+        ('app/legal_engine/data/precedents/index.json', 'legal_engine/data/precedents'),
         # 仲裁委数据
         ('app/legal_engine/data/arbitration_committees.json', 'legal_engine/data'),
         # 前端静态文件
@@ -32,7 +33,8 @@ a = Analysis(
         'app.agents', 'app.agents.base', 'app.agents.router', 'app.agents.registry',
         'app.agents.case_analysis', 'app.agents.violation_detect', 'app.agents.compensation_calc',
         'app.agents.contract_review', 'app.agents.evidence_analyze', 'app.agents.document_draft',
-        'app.agents.arbitration_guide', 'app.agents.strategy_plan',
+        'app.agents.arbitration_guide', 'app.agents.strategy_plan', 'app.agents.evidence_checklist',
+        'app.api.arbitration',
         'app.legal_engine', 'app.legal_engine.law_store', 'app.legal_engine.case_store',
         'app.schemas', 'app.schemas.auth', 'app.schemas.case', 'app.schemas.consultation',
         'app.schemas.contract', 'app.schemas.evidence', 'app.schemas.compensation',

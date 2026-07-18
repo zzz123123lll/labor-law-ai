@@ -118,12 +118,11 @@ labor-law-ai/
 | 法律条文 | ✅ | 4 部法律 71 条（WebSearch 校验） |
 | 案例库 | ✅ | 10 个劳动仲裁典型案例 |
 | AI Key 界面配置 | ✅ | 设置页直接填入，实时生效 |
-| 桌面打包 | ⚠️ | PyInstaller 配置就绪，未实际打包测试 |
-| 支付系统 | ⚠️ | 三档定价 Mock |
-| OCR | ❌ | 桌面版暂不启用（PaddleOCR 体积太大） |
+| 桌面打包 | ✅ | PyInstaller exe 43MB，双击即用 |
+| OCR | ⚠️ | 桌面板暂不启用（PaddleOCR 体积太大，考虑用 AI Vision 替代） |
 | 前端测试 | ❌ | 待实现 |
-| 前端 Error Boundary | ❌ | 待实现 |
-| CI 质量门控 | ⚠️ | 有 lint 依赖，未配置 ruff/pre-commit |
+| 前端 Error Boundary | ✅ | error/loading/not-found 页面全覆盖 |
+| CI 质量门控 | ✅ | ruff + pre-commit + GitHub Actions lint |
 
 ## 已内置的专业化内容
 

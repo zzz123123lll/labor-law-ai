@@ -15,3 +15,6 @@ logs/
 uploads/
 docs/
 web-app/out/
+fastapi-server/build/
+fastapi-server/dist/
+*.spec.bak
