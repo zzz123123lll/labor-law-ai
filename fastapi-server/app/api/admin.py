@@ -62,8 +62,8 @@ async def get_user_detail(user_id: str):
     """用户详情。"""
     try:
         uid = uuid.UUID(user_id)
-    except ValueError:
-        raise HTTPException(400, "无效的用户 ID")
+    except ValueError as err:
+        raise HTTPException(400, "无效的用户 ID") from err
     async with AsyncSessionLocal() as db:
         u_result = await db.execute(select(User).where(User.id == uid))
         u = u_result.scalar_one_or_none()
@@ -82,8 +82,8 @@ async def toggle_user_vip(user_id: str):
     """手动开通/关闭 VIP。"""
     try:
         uid = uuid.UUID(user_id)
-    except ValueError:
-        raise HTTPException(400, "无效的用户 ID")
+    except ValueError as err:
+        raise HTTPException(400, "无效的用户 ID") from err
     async with AsyncSessionLocal() as db:
         u_result = await db.execute(select(User).where(User.id == uid))
         user = u_result.scalar_one_or_none()
@@ -121,8 +121,8 @@ async def get_case_detail(case_id: str):
     """案件详情（含消息和证据）。"""
     try:
         cid = uuid.UUID(case_id)
-    except ValueError:
-        raise HTTPException(400, "无效的案件 ID")
+    except ValueError as err:
+        raise HTTPException(400, "无效的案件 ID") from err
     async with AsyncSessionLocal() as db:
         case_result = await db.execute(select(Case).where(Case.id == cid))
         case = case_result.scalar_one_or_none()

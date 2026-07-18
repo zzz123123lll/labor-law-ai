@@ -94,8 +94,8 @@ async def upload_evidence(
     _validate_file(file)
     try:
         case_uuid = uuid.UUID(case_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="无效的 case_id 格式")
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail="无效的 case_id 格式") from err
 
     async with AsyncSessionLocal() as db:
         # 验证案件存在
@@ -138,8 +138,8 @@ async def analyze_evidence(
     """调 EvidenceAnalyzeAgent 执行 AI 分析，更新 evidence.analysis。"""
     try:
         evidence_uuid = uuid.UUID(file_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="无效的 file_id 格式")
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail="无效的 file_id 格式") from err
 
     async with AsyncSessionLocal() as db:
         result = await db.execute(
@@ -179,7 +179,7 @@ async def analyze_evidence(
             result = await agent.run(ctx)
         except Exception as e:
             logger.exception("证据分析 Agent 执行失败")
-            raise HTTPException(status_code=500, detail=f"AI 分析失败: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"AI 分析失败: {str(e)}") from e
 
         # 更新分析结果
         evidence.analysis = {
@@ -206,8 +206,8 @@ async def list_evidence(
     """返回指定案件的证据清单。"""
     try:
         case_uuid = uuid.UUID(case_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="无效的 case_id 格式")
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail="无效的 case_id 格式") from err
 
     async with AsyncSessionLocal() as db:
         # 查询证据

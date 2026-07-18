@@ -1,4 +1,7 @@
 """应用配置，所有环境变量统一管理。"""
+import sys
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -61,9 +64,6 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
-import sys
-from pathlib import Path
 
 # 打包后的数据目录
 if getattr(sys, 'frozen', False):

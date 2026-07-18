@@ -24,8 +24,8 @@ async def calculate_compensation(
     """调 CompensationCalcAgent 计算赔偿，保存结果到 compensation_reports。"""
     try:
         case_uuid = uuid.UUID(req.case_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="无效的 case_id 格式")
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail="无效的 case_id 格式") from err
 
     async with AsyncSessionLocal() as db:
         # 查询案件（不校验所有权）
@@ -57,7 +57,7 @@ async def calculate_compensation(
             result = await agent.run(ctx)
         except Exception as e:
             logger.exception("赔偿计算 Agent 执行失败")
-            raise HTTPException(status_code=500, detail=f"AI 计算失败: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"AI 计算失败: {str(e)}") from e
 
         # 解析赔偿项（启发式）
         items, total_min, total_max = _parse_compensation_result(result.content)
@@ -99,7 +99,6 @@ def _parse_compensation_result(content: str) -> tuple[list, float, float]:
     total_max = 0.0
 
     # 提取表格行中的金额
-    table_pattern = re.compile(r'\|[^|]+\|[^|]+\|[^|]+\|[^|]+\|')
     for line in content.split('\n'):
         line = line.strip()
         if not line.startswith('|') or not line.endswith('|'):

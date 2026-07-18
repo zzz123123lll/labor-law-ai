@@ -66,8 +66,8 @@ async def upload_contract(
         if case_id:
             try:
                 case_uuid = uuid.UUID(case_id)
-            except ValueError:
-                raise HTTPException(status_code=400, detail="无效的 case_id 格式")
+            except ValueError as err:
+                raise HTTPException(status_code=400, detail="无效的 case_id 格式") from err
             result = await db.execute(
                 select(Case).where(Case.id == case_uuid)
             )
@@ -103,8 +103,8 @@ async def review_contract(
     """调 ContractReviewAgent 执行 AI 审查，更新 findings/score/risk_level/full_report。"""
     try:
         review_uuid = uuid.UUID(file_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="无效的 file_id 格式")
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail="无效的 file_id 格式") from err
 
     async with AsyncSessionLocal() as db:
         result = await db.execute(
@@ -144,7 +144,7 @@ async def review_contract(
             result = await agent.run(ctx)
         except Exception as e:
             logger.exception("合同审查 Agent 执行失败")
-            raise HTTPException(status_code=500, detail=f"AI 分析失败: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"AI 分析失败: {str(e)}") from e
 
         # 解析结果中的评分和风险等级（简单启发式解析）
         score, risk_level = _parse_review_result(result.content)
@@ -173,8 +173,8 @@ async def get_contract_report(
     """返回审查报告。"""
     try:
         review_uuid = uuid.UUID(id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="无效的 id 格式")
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail="无效的 id 格式") from err
 
     async with AsyncSessionLocal() as db:
         result = await db.execute(

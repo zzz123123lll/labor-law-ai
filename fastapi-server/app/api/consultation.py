@@ -37,8 +37,8 @@ async def chat(
         if req.case_id:
             try:
                 case_uuid = uuid_lib.UUID(req.case_id)
-            except (ValueError, AttributeError):
-                raise HTTPException(400, "案件ID格式无效")
+            except (ValueError, AttributeError) as err:
+                raise HTTPException(400, "案件ID格式无效") from err
             case_result = await db.execute(
                 select(Case).where(Case.id == case_uuid)
             )

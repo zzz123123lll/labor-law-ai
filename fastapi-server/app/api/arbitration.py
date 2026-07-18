@@ -1,6 +1,7 @@
 """仲裁委查询 API。"""
 import json
 from pathlib import Path
+
 from fastapi import APIRouter, HTTPException, Query
 
 router = APIRouter(prefix="/api/arbitration", tags=["仲裁委查询"])

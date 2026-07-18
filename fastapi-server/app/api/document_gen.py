@@ -54,8 +54,8 @@ async def generate_document(
 
     try:
         case_uuid = uuid.UUID(req.case_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="无效的 case_id 格式")
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail="无效的 case_id 格式") from err
 
     async with AsyncSessionLocal() as db:
         # 查询案件（不校验所有权）
@@ -101,7 +101,7 @@ async def generate_document(
             result = await agent.run(ctx)
         except Exception as e:
             logger.exception("文书生成 Agent 执行失败")
-            raise HTTPException(status_code=500, detail=f"文书生成失败: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"文书生成失败: {str(e)}") from e
 
         # 生成标题
         title = _doc_type_label(req.doc_type)
@@ -133,8 +133,8 @@ async def auto_fill_document(req: AutoFillRequest, request: Request):
     """自动填入案件信息生成仲裁申请书。"""
     try:
         case_uuid = uuid.UUID(req.case_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="无效的 case_id 格式")
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail="无效的 case_id 格式") from err
 
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(Case).where(Case.id == case_uuid))
@@ -170,7 +170,7 @@ async def auto_fill_document(req: AutoFillRequest, request: Request):
             result = await agent.run(ctx)
         except Exception as e:
             logger.exception("文书生成 Agent 执行失败")
-            raise HTTPException(status_code=500, detail=f"文书生成失败: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"文书生成失败: {str(e)}") from e
 
         doc = GeneratedDocument(
             case_id=case_uuid,
@@ -201,8 +201,8 @@ async def generate_evidence_checklist(
     """调 EvidenceChecklistAgent 生成带获取方法的证据清单。"""
     try:
         case_uuid = uuid.UUID(req.case_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="无效的 case_id 格式")
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail="无效的 case_id 格式") from err
 
     async with AsyncSessionLocal() as db:
         # 查询案件
@@ -233,7 +233,7 @@ async def generate_evidence_checklist(
             result = await agent.run(ctx)
         except Exception as e:
             logger.exception("证据清单 Agent 执行失败")
-            raise HTTPException(status_code=500, detail=f"证据清单生成失败: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"证据清单生成失败: {str(e)}") from e
 
         # 保存到数据库
         doc = GeneratedDocument(
@@ -264,8 +264,8 @@ async def download_document(
     """返回文书的 Markdown 内容（PDF 生成后期再做）。"""
     try:
         doc_uuid = uuid.UUID(id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="无效的 id 格式")
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail="无效的 id 格式") from err
 
     async with AsyncSessionLocal() as db:
         result = await db.execute(
@@ -292,8 +292,8 @@ async def download_pdf(
     """下载文书的 PDF 版本（格式化排版 + 页眉页脚）。"""
     try:
         doc_uuid = uuid.UUID(id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="无效的 id 格式")
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail="无效的 id 格式") from err
 
     async with AsyncSessionLocal() as db:
         result = await db.execute(
@@ -307,7 +307,7 @@ async def download_pdf(
         pdf_path = _markdown_to_pdf(doc.title, doc.content)
     except Exception as e:
         logger.exception("PDF 生成失败")
-        raise HTTPException(status_code=500, detail=f"PDF 生成失败: {str(e)}。请使用 Markdown 下载代替。")
+        raise HTTPException(status_code=500, detail=f"PDF 生成失败: {str(e)}。请使用 Markdown 下载代替。") from e
 
     return FileResponse(
         pdf_path,
@@ -327,7 +327,7 @@ def _markdown_to_pdf(title: str, markdown_content: str) -> str:
 
     html_body = md_lib.markdown(markdown_content, extensions=["extra", "tables"])
 
-    HTML_TEMPLATE = """<!DOCTYPE html>
+    html_template = """<!DOCTYPE html>
 <html lang="zh-CN">
 <head><meta charset="utf-8">
 <style>
@@ -344,7 +344,7 @@ def _markdown_to_pdf(title: str, markdown_content: str) -> str:
 <body>{body}<div class="disclaimer">本文书由 AI 辅助生成，不替代律师正式法律意见。生成时间：{now}</div></body>
 </html>"""
 
-    html = HTML_TEMPLATE.format(
+    html = html_template.format(
         title=title, body=html_body, now=_now_str(),
     )
 

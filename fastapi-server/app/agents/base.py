@@ -105,7 +105,6 @@ class BaseAgent(ABC):
         cited = []
         for la in searched_laws:
             # 匹配 "《劳动法》第四十七条" 或 "劳动合同法第47条" 等引用格式
-            law_short = la.law.replace("中华人民共和国", "").replace("劳动法", "").replace("合同法", "")
             patterns = [
                 f"《{la.law}》\\s*第\\s*{la.article.replace('第','').replace('条','')}\\s*条",
                 f"{la.law}\\s*第\\s*{la.article.replace('第','').replace('条','')}\\s*条",
@@ -167,7 +166,7 @@ class BaseAgent(ABC):
         # 法条引用
         law_refs = re.findall(r"《([^》]+)》\s*第\s*([\d一二三四五六七八九十]+)\s*条", content)
         if law_refs:
-            data["laws_cited"] = [{"law": l[0], "article": l[1]} for l in law_refs[:10]]
+            data["laws_cited"] = [{"law": law[0], "article": law[1]} for law in law_refs[:10]]
 
         return data
 

@@ -1,13 +1,12 @@
 """本地设置 API——AI Key 等运行时配置。"""
 import json
+import sys
 from pathlib import Path
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/settings", tags=["设置"])
-
-import sys
 
 if getattr(sys, 'frozen', False):
     CONFIG_PATH = Path(sys.executable).parent / "data" / "app_settings.json"
