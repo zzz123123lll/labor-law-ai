@@ -5,6 +5,7 @@
 [![Last commit](https://img.shields.io/github/last-commit/zzz123123lll/labor-law-ai)](https://github.com/zzz123123lll/labor-law-ai/commits/master)
 [![CI](https://github.com/zzz123123lll/labor-law-ai/actions/workflows/test.yml/badge.svg)](https://github.com/zzz123123lll/labor-law-ai/actions/workflows/test.yml)
 [![Tests](https://img.shields.io/badge/tests-31%20passed-green)](https://github.com/zzz123123lll/labor-law-ai)
+[![Juejin](https://img.shields.io/badge/%E6%8E%98%E9%87%91-%E6%96%87%E7%AB%A0-blue)](https://juejin.cn/post/7663419348321615922)
 
 面向普通劳动者的 AI 法律维权工具——**引导式填表 → AI 自动分析 → 一键生成仲裁材料**。
 
@@ -134,6 +135,12 @@ labor-law-ai/
 | 文书模板 | 仲裁申请书 / 投诉信 / 证据清单 |
 | 违法检测 | 工资/合同/辞退/加班/社保 5 类自动识别 |
 | 案例匹配 | 标签 + 关键词检索 |
+
+## 相关链接
+
+- 📖 [掘金介绍文章](https://juejin.cn/post/7663419348321615922)
+- 🔧 [AI 配置指南](./HOW_TO_CONFIGURE_AI.md)
+- 🎨 [设计系统说明](./DESIGN.md)
 
 ## 免责声明
 
