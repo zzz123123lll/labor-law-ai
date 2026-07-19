@@ -169,7 +169,7 @@ function renderApiKey(){
     var pp=providers[i];var s=pp.id===state.provider?" selected":"";
     opts+='<option value="'+pp.id+'"'+s+'>'+pp.name+'</option>';
   }
-  var isOllama=state.provider==="ollama";
+  var isCustom=state.provider==="custom";var isOllama=state.provider==="ollama";
   app.innerHTML='<div style="min-height:80vh;display:flex;flex-direction:column;justify-content:center"><div class="card text-center" style="padding:32px 20px"><div class="logo-text mb-3"><span>⚖️</span> 劳动法维权助手</div><p class="text-muted mb-4">免费开源的劳动仲裁辅助工具<br>AI帮你分析问题、计算赔偿、生成仲裁申请书</p><hr class="divider"><div class="mb-3"><label class="label text-left">🤖 AI模型</label><select id="provider-select" class="input" onchange="onProviderChange()">'+opts+'</select></div>'+(!isOllama?'<div class="mb-3" id="key-group"><label class="label text-left">🔑 '+sel.name+' API Key</label><input id="apikey-input" class="input" type="password" value="'+escHtml(state.apiKey)+'" placeholder="'+sel.keyHint+'"><p class="text-muted mt-2">获取：<a href="'+sel.keyLink+'" target="_blank" style="color:var(--accent)">'+sel.keyLink.replace("https://","")+'</a> → '+sel.keyDesc+'</p></div>':'<div class="mb-3"><div class="badge badge-ok">📡 使用本地Ollama服务，无需API Key</div><p class="text-muted mt-2">下载：<a href="https://ollama.com/download" target="_blank" style="color:var(--accent)">ollama.com</a> → 安装后运行: ollama pull qwen2.5:7b</p></div>')+'<button class="btn btn-primary btn-block" onclick="handleApiKey()">开始使用</button><p class="text-muted mt-4">🔒 Key仅存在浏览器本地，不经过任何服务器</p></div></div>';
 }
 function renderProblem(){
@@ -211,7 +211,7 @@ function renderLoading(){
 function renderResults(){
   var html='<div class="card mb-3"><div style="display:flex;align-items:center;gap:8px"><span>✅</span><span style="font-weight:700;font-size:15px">分析完成</span><span class="text-muted" style="margin-left:auto">'+state.problemType+'</span></div></div><div class="space-y-2">';
   for(var i=0;i<state.results.length;i++){var r=state.results[i];html+='<div class="agent-msg"><h3>📋 '+r.agentName+'</h3>'+formatMarkdown(r.content)+'</div>'}
-  html+='</div><div class="flex gap-2 mt-4" style="flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="downloadResults()">📥 下载报告</button><button class="btn btn-secondary btn-sm" onclick="copyResults()">📋 复制全部</button><button class="btn btn-primary btn-sm" onclick="resetAll()">🔄 重新分析</button></div><p class="text-muted text-center mt-4">⚠️ 本工具提供法律辅助，不替代专业律师。复杂案件请咨询执业律师。</p>';
+  html+='</div><div class="flex gap-2 mt-4" style="flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="downloadResults()">📥 下载报告</button><button class="btn btn-secondary btn-sm" onclick="copyResults()">📋 复制全部</button><button class="btn btn-primary btn-sm" onclick="resetAll()">🔄 重新分析</button></div><div class="card mt-3 text-center" id="feedback-section" style="padding:10px"><span class="text-sm" style="margin-right:8px">这个结果对你有帮助吗？</span><button class="btn btn-sm btn-secondary" onclick="sendFeedback(1)">👍 有帮助</button><button class="btn btn-sm btn-secondary" onclick="sendFeedback(0)">👎 没帮助</button></div><p class="text-muted text-center mt-4">⚠️ 本工具提供法律辅助，不替代专业律师。复杂案件请咨询执业律师。</p>';
   app.innerHTML=html;
 }
 /* ==================== 辅助函数 ==================== */
@@ -307,6 +307,17 @@ function copyResults(){
   navigator.clipboard.writeText(text).then(function(){toast("已复制到剪贴板 ✓")}).catch(function(){toast("复制失败","err")});
 }
 window.copyResults=copyResults;
+
+function sendFeedback(v){
+  var el=document.getElementById("feedback-section");
+  if(el)el.innerHTML='<span class="text-sm" style="color:var(--success)">🙏 感谢反馈！</span>';
+  try{
+    var fb=JSON.parse(localStorage.getItem("llm_feedback")||"[]");
+    fb.push({ts:new Date().toISOString(),type:state.problemType,helpful:!!v});
+    localStorage.setItem("llm_feedback",JSON.stringify(fb));
+  }catch(e){}
+}
+window.sendFeedback=sendFeedback;
 
 /* ==================== 初始化 ==================== */
 loadSettings();render();
