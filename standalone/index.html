@@ -1,0 +1,315 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>劳动法维权助手 — AI 免费生成仲裁申请书</title>
+<style>
+:root {
+  --bg: #fafbfc;
+  --card: #fff;
+  --text: #1a1a2e;
+  --text-muted: #6b7280;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --border: #e5e7eb;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --radius: 12px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans SC",sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+.container{max-width:640px;margin:0 auto;padding:16px}
+.card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);padding:16px;margin-bottom:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .2s;text-decoration:none}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-hover)}
+.btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{background:#f3f4f6}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-block{width:100%}
+.input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;transition:border-color .2s}
+.input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.label{display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px}
+.tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;background:#dbeafe;color:var(--accent)}
+.tag-green{background:#dcfce7;color:var(--success)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:16px;font-size:11px;font-weight:600}
+.badge-ok{background:#dcfce7;color:var(--success)}
+.badge-warn{background:#fef3c7;color:#d97706}
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0}
+.text-center{text-align:center}
+.text-muted{color:var(--text-muted);font-size:12px}
+.text-sm{font-size:13px}
+.text-xs{font-size:11px}
+.mb-2{margin-bottom:8px}
+.mb-3{margin-bottom:12px}
+.mb-4{margin-bottom:16px}
+.mt-2{margin-top:8px}
+.mt-4{margin-top:16px}
+.gap-2{gap:8px}
+.flex{display:flex}
+.flex-col{flex-direction:column}
+.flex-wrap{flex-wrap:wrap}
+.items-center{align-items:center}
+.justify-center{justify-content:center}
+.space-y-2 > * + *{margin-top:8px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.hidden{display:none}
+.agent-msg{padding:12px 16px;border-radius:8px;background:#f8fafc;border-left:3px solid var(--accent);margin-bottom:8px;font-size:14px;line-height:1.7;animation:slideIn .3s ease}
+.agent-msg h3{font-size:13px;color:var(--accent);margin-bottom:6px}
+.agent-msg h4{font-size:13px;margin:10px 0 4px}
+.agent-msg table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+.agent-msg th,.agent-msg td{border:1px solid var(--border);padding:6px 8px;text-align:left}
+.agent-msg th{background:#f1f5f9;font-weight:600}
+.agent-msg ul,.agent-msg ol{padding-left:20px;margin:4px 0}
+.agent-msg code{background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:12px}
+.agent-msg pre{background:#1e293b;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;font-size:12px;line-height:1.5}
+.typing::after{content:"|";animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:999;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;animation:slideIn .3s ease}
+.toast-ok{background:#dcfce7;color:var(--success);border:1px solid #86efac}
+.toast-err{background:#fee2e2;color:var(--danger);border:1px solid #fecaca}
+.problem-card{cursor:pointer;display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--card);transition:all .2s}
+.problem-card:hover{border-color:var(--accent);box-shadow:0 2px 8px rgba(37,99,235,.08)}
+.problem-card.selected{border-color:var(--accent);background:#eff6ff}
+.problem-card .check{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.problem-card.selected .check{border-color:var(--accent);background:var(--accent);color:#fff}
+.logo-text{font-size:20px;font-weight:800;letter-spacing:-.5px}
+.logo-text span{color:var(--accent)}
+.step-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .3s}
+.step-dot.active{background:var(--accent);box-shadow:0 0 0 4px rgba(37,99,235,.15)}
+.step-dot.done{background:var(--success)}
+.step-line{flex:1;height:1px;background:var(--border);margin:0 4px}
+.step-line.done{background:var(--success)}
+@media(min-width:768px){.container{padding:24px}.card{padding:20px}}
+</style>
+</head>
+<body>
+<div id="app" class="container"></div>
+<div id="toast"></div>
+<script>
+/* ==================== 知识库 ==================== */
+var LAW_DB=[
+  {law:"劳动合同法",article:"第10条",content:"建立劳动关系，应当订立书面劳动合同。已建立劳动关系，未同时订立书面劳动合同的，应当自用工之日起一个月内订立书面劳动合同。"},
+  {law:"劳动合同法",article:"第82条",content:"用人单位自用工之日起超过一个月不满一年未与劳动者订立书面劳动合同的，应当向劳动者每月支付二倍的工资。"},
+  {law:"劳动合同法",article:"第47条",content:"经济补偿按劳动者在本单位工作的年限，每满一年支付一个月工资的标准向劳动者支付。六个月以上不满一年的，按一年计算；不满六个月的，向劳动者支付半个月工资的经济补偿。"},
+  {law:"劳动合同法",article:"第87条",content:"用人单位违反本法规定解除或者终止劳动合同的，应当依照本法第四十七条规定的经济补偿标准的二倍向劳动者支付赔偿金。"},
+  {law:"劳动法",article:"第44条",content:"安排劳动者延长工作时间的，支付不低于工资的150%的工资报酬；休息日安排工作又不能安排补休的，支付不低于200%的工资报酬；法定休假日安排工作的，支付不低于300%的工资报酬。"},
+  {law:"劳动法",article:"第50条",content:"工资应当以货币形式按月支付给劳动者本人。不得克扣或者无故拖欠劳动者的工资。"},
+  {law:"劳动合同法",article:"第38条",content:"用人单位未及时足额支付劳动报酬的，劳动者可以解除劳动合同。"},
+  {law:"劳动合同法",article:"第46条",content:"劳动者依照本法第三十八条规定解除劳动合同的，用人单位应当向劳动者支付经济补偿。"},
+  {law:"劳动争议调解仲裁法",article:"第27条",content:"劳动争议申请仲裁的时效期间为一年。仲裁时效期间从当事人知道或者应当知道其权利被侵害之日起计算。"}
+];
+var ARB_DATA={"北京":"北京市劳动人事争议仲裁委员会 | 西城区槐柏树街2号 | 010-12333","上海":"上海市劳动人事争议仲裁委员会 | 黄浦区中山南路865号 | 021-12333","广州":"广州市劳动人事争议仲裁院 | 天河区龙口东路21号 | 020-12333","深圳":"深圳市劳动人事争议仲裁院 | 福田区深南大道8005号 | 0755-12333","杭州":"杭州市劳动人事争议仲裁院 | 上城区中河中路242号 | 0571-12333","成都":"成都市劳动人事争议仲裁委员会 | 金牛区二环路北一段4号 | 028-12333","武汉":"武汉市劳动人事争议仲裁委员会 | 江汉区新华路25号 | 027-12333","南京":"南京市劳动人事争议仲裁院 | 鼓楼区水佑岗6号 | 025-12333","重庆":"重庆市劳动人事争议仲裁院 | 渝北区春华大道99号 | 023-12333","西安":"西安市劳动人事争议仲裁院 | 碑林区建设东路1号 | 029-12333"};
+
+/* ==================== Agent系统提示词 ==================== */
+var AGENTS={
+  case_analysis:{name:"案件分析",prompt:function(l,p){return "你是中国劳动法律专家。请对用户情况进行全面的案件分析。\n\n### 案件摘要\n（3-5句话概括）\n\n### 涉及法律问题\n（列出可能涉及的法律问题类型）\n\n### 初步判断\n（对每种问题给出合法性判断，引用具体法条）\n\n### 下一步建议\n（用户还应补充哪些信息？建议下一步做什么？）\n\n## 可用法律\n"+l+"\n\n## 重要规则\n1. 每个判断引用具体法条\n2. 不确定的事明确说\"不确定\"\n3. 不要编造法律条文";}},
+  violation_detect:{name:"违法识别",prompt:function(l,p){return "你是中国劳动法律违法识别专家。逐条分析用户描述，判断公司是否存在违法行为。\n\n### 违法项: [类型名称]\n- **用户陈述**: 用户说了什么\n- **法律认定**: 该行为是否成立\n- **违法认定**: 违法/可能违法/证据不足/合法\n- **法律依据**: 具体法条\n- **风险分析**: 如果成立，后果是什么\n\n### 总结\n- 明确违法行为: N项\n- 可能违法行为: N项\n\n## 法律条文\n"+l;}},
+  compensation:{name:"赔偿计算",prompt:function(l,p){var s=p.monthlySalary||5000;var m=p.workMonths||12;var y=Math.max(1,Math.floor(m/12));return "你是中国劳动法律赔偿计算专家。根据用户信息计算可主张的赔偿金额。\n\n## 计算公式\n- 双倍工资 = 未签合同月数 * 月工资（最多11个月）\n- 经济补偿金N = 工作年限 * 月均工资\n- 违法解除赔偿金2N = 经济补偿金 * 2\n- 加班费：工作日1.5x，休息日2x，法定节假日3x\n\n## 输出格式（表格）\n| 赔偿项目 | 最低金额 | 最高金额 | 计算依据 |\n|----------|----------|----------|----------|\n| 双倍工资 | | | |\n| 经济补偿金 | | | |\n| 违法解除赔偿金 | | | |\n| **合计** | | | |\n\n## 法律条文\n"+l+"\n\n## 用户信息: 月薪约"+s+"元, 工作约"+y+"年\n\n## 重要规则\n1. 计算过程详细写出\n2. 不确定时给最低和最高估算\n3. 金额四舍五入到元";}},
+  document_draft:{name:"文书起草",prompt:function(l,p){var co=p.companyName||"";var ci=p.city||"";var sa=p.monthlySalary||"______";var hd=p.hireDate||"______";var td=(new Date()).toLocaleDateString("zh-CN",{year:"numeric",month:"long",day:"numeric"});return "你是中国劳动法律文书起草专家。根据案件信息起草规范的劳动仲裁申请书。\n\n## 核心规则（最重要！）\n1. 已知信息必须自动填入——公司名、城市、月薪等绝不能留空\n2. 只有用户确实没提供的信息才用\"______\"（如姓名、身份证号）\n3. 赔偿金额必须精确计算\n\n## 输出格式\n\n**劳动仲裁申请书**\n\n**申请人**：______（姓名）、性别______、身份证号______、住址______、联系电话______\n\n**被申请人**："+co+"（公司全称）、法定代表人______\n\n**请求事项**：\n1. 支付违法解除劳动合同赔偿金 ______ 元\n2. 支付拖欠工资 ______ 元\n（根据案情列出）\n\n**事实与理由**：\n（陈述事实，自动填入：入职时间"+hd+"、岗位______、工资标准"+sa+"元等已知信息）\n\n**此致**\n"+ci+"劳动人事争议仲裁委员会\n\n**申请人签名**：______\n**日期**："+td+"\n\n## 法律依据\n"+l+"\n\n## 赔偿计算规则\n- 违法解除：赔偿金 = 工作年限 * 月薪 * 2\n- 拖欠工资：应付未付金额\n- 未签合同：最多11个月双倍工资差额\n- 加班费：工作日1.5x，休息日2x，法定节假日3x";}},
+  evidence:{name:"证据清单",prompt:function(l,p){return "你是劳动法证据专家。生成一份带获取方法的证据清单。\n\n## 核心要求\n1. 每项证据包括：名称、证明目的、获取方法\n2. 获取方法必须具体可操作\n3. 按重要性排序\n\n## 参考\n| 证据 | 去哪获取 |\n|------|---------|\n| 劳动合同 | 个人档案/公司HR索取/入职邮件 |\n| 工资流水 | 银行APP：首页->流水->筛选日期->导出 |\n| 社保记录 | 支付宝：市民中心->社保->社保查询->截图 |\n| 考勤记录 | 钉钉/企业微信->考勤->月度汇总截图 |\n| 聊天记录 | 长按消息->多选->合并转发/截图 |\n| 工作邮件 | 邮箱搜索公司域名->筛选->导出PDF |\n| 解除通知 | 公司发的书面通知、邮件、微信截图 |\n| 录音 | 手机录音APP，录音前说\"现在是X年X月X日...\" |\n\n## 输出格式\n| 序号 | 证据名称 | 证明目的 | 获取方法 |\n|------|---------|---------|---------|\n| 1 | ... | ... | ... |\n\n### 提交注意事项\n- 复印件准备N+1份\n- 视频/音频刻录光盘\n- 每页加盖\"与原件核对无误\"章";}},
+  arbitration:{name:"仲裁指导",prompt:function(l,p){var ci=p.city||"您所在城市";var inf=ARB_DATA[ci]||"请咨询当地12333热线";return "你是中国劳动仲裁指导专家。提供劳动仲裁全流程指导。\n\n## 该城市仲裁委信息\n"+inf+"\n\n### 仲裁可行性评估\n- **仲裁时效**: 1年，从知道权利被侵害之日起计算\n- **管辖仲裁委**: "+ci+"劳动人事争议仲裁委员会\n\n### 仲裁流程指南\n\n#### 第一步：申请仲裁\n- 申请材料：仲裁申请书、身份证复印件、公司工商信息、证据材料及清单\n- 提交方式：现场/邮寄/网上\n- 费用：劳动仲裁不收费\n\n#### 第二步：立案审查\n- 5个工作日内决定是否受理\n- 不受理时出具通知书，可向法院起诉\n\n#### 第三步：开庭审理\n- 开庭前5日送达通知\n- 流程：核对身份->陈述请求->答辩->质证->辩论->调解->最后陈述\n\n#### 第四步：仲裁裁决\n- 一般45日内作出裁决\n- 不服可15日内向法院起诉\n\n### 各阶段注意事项\n\n### 常见问题\n\n## 法律条文\n"+l;}}
+};
+
+/* ==================== 状态 ==================== */
+var state={step:0,problemType:"",form:{companyName:"",city:"",hireDate:"",monthlySalary:"",description:""},provider:"deepseek",baseUrl:"https://api.deepseek.com/v1/chat/completions",model:"deepseek-chat",apiKey:"",streaming:false,results:[]};
+
+function saveSettings(){localStorage.setItem("llm_settings",JSON.stringify({apiKey:state.apiKey,provider:state.provider,baseUrl:state.baseUrl,model:state.model}))}
+function loadSettings(){try{var s=JSON.parse(localStorage.getItem("llm_settings")||"{}");state.apiKey=s.apiKey||"";state.provider=s.provider||"deepseek";state.baseUrl=s.baseUrl||"https://api.deepseek.com/v1/chat/completions";state.model=s.model||"deepseek-chat"}catch(e){state.provider="deepseek";state.baseUrl="https://api.deepseek.com/v1/chat/completions";state.model="deepseek-chat"}}
+function getLawText(){return LAW_DB.map(function(l){return "- **"+l.law+"** "+l.article+": "+l.content}).join("\n")}
+/* ==================== API ==================== */
+async function callLLM(sys,user,onChunk){
+  var body=JSON.stringify({model:state.model,messages:[{role:"system",content:sys},{role:"user",content:user}],stream:true,temperature:0.3});
+  var resp=await fetch("https://api.deepseek.com/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+state.apiKey},body:body});
+  if(!resp.ok){var err=await resp.text();throw new Error("API error ("+resp.status+"): "+err.slice(0,200))}
+  var reader=resp.body.getReader();var decoder=new TextDecoder();var buf="";
+  while(true){
+    var r=await reader.read();if(r.done)break;
+    buf+=decoder.decode(r.value,{stream:true});var lines=buf.split("\n");buf=lines.pop()||"";
+    for(var i=0;i<lines.length;i++){
+      var line=lines[i].trim();if(!line||line.indexOf("data:")!==0)continue;
+      var data=line.slice(5).trim();if(data==="[DONE]")return;
+      try{var json=JSON.parse(data);var delta=json.choices&&json.choices[0]&&json.choices[0].delta&&json.choices[0].delta.content;if(delta)onChunk(delta)}catch(e){}
+    }
+  }
+}
+
+/* ==================== UI渲染 ==================== */
+var app=document.getElementById("app");
+
+function toast(msg,type){type=type||"ok";var el=document.getElementById("toast");el.innerHTML='<div class="toast toast-'+(type==="err"?"err":"ok")+'">'+msg+'</div>';setTimeout(function(){el.innerHTML=""},3000)}
+
+function render(){
+  switch(state.step){
+    case 0:renderApiKey();break;
+    case 1:renderProblem();break;
+    case 2:renderForm();break;
+    case 3:renderLoading();break;
+    case 4:renderResults();break;
+  }
+}
+function renderApiKey(){
+  loadSettings();
+  var providers=[
+    {id:"deepseek",name:"DeepSeek (推荐)",url:"https://api.deepseek.com/v1/chat/completions",model:"deepseek-chat",keyHint:"sk-xxxxxxxxxxxxxxxx",keyLink:"https://platform.deepseek.com",keyDesc:"新用户送500万tokens"},
+    {id:"openai",name:"OpenAI",url:"https://api.openai.com/v1/chat/completions",model:"gpt-4o-mini",keyHint:"sk-proj-...",keyLink:"https://platform.openai.com/api-keys",keyDesc:"需绑定信用卡"},
+    {id:"qwen",name:"通义千问 (Qwen)",url:"https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",model:"qwen-plus",keyHint:"sk-xxxxxxxxxxxxxxxx",keyLink:"https://bailian.console.aliyun.com/",keyDesc:"新用户送100万tokens"},
+    {id:"glm",name:"智谱 GLM",url:"https://open.bigmodel.cn/api/paas/v4/chat/completions",model:"glm-4-flash",keyHint:"xxxxxxxxxxxxxxxx",keyLink:"https://open.bigmodel.cn/usercenter/apikeys",keyDesc:"新用户送100万tokens"},
+    {id:"ollama",name:"Ollama (本地)",url:"http://localhost:11434/v1/chat/completions",model:"qwen2.5:7b",keyHint:"ollama (无需Key)",keyLink:"https://ollama.com/download",keyDesc:"需先安装Ollama并拉取模型"},
+    {id:"custom",name:"自定义",url:"",model:"",keyHint:"输入你的API Key",keyLink:"",keyDesc:"填写你使用的任何OpenAI兼容API"}
+  ];
+  var sel=providers.find(function(p){return p.id===state.provider})||providers[0];
+  var opts="";
+  for(var i=0;i<providers.length;i++){
+    var pp=providers[i];var s=pp.id===state.provider?" selected":"";
+    opts+='<option value="'+pp.id+'"'+s+'>'+pp.name+'</option>';
+  }
+  var isOllama=state.provider==="ollama";
+  app.innerHTML='<div style="min-height:80vh;display:flex;flex-direction:column;justify-content:center"><div class="card text-center" style="padding:32px 20px"><div class="logo-text mb-3"><span>⚖️</span> 劳动法维权助手</div><p class="text-muted mb-4">免费开源的劳动仲裁辅助工具<br>AI帮你分析问题、计算赔偿、生成仲裁申请书</p><hr class="divider"><div class="mb-3"><label class="label text-left">🤖 AI模型</label><select id="provider-select" class="input" onchange="onProviderChange()">'+opts+'</select></div>'+(!isOllama?'<div class="mb-3" id="key-group"><label class="label text-left">🔑 '+sel.name+' API Key</label><input id="apikey-input" class="input" type="password" value="'+escHtml(state.apiKey)+'" placeholder="'+sel.keyHint+'"><p class="text-muted mt-2">获取：<a href="'+sel.keyLink+'" target="_blank" style="color:var(--accent)">'+sel.keyLink.replace("https://","")+'</a> → '+sel.keyDesc+'</p></div>':'<div class="mb-3"><div class="badge badge-ok">📡 使用本地Ollama服务，无需API Key</div><p class="text-muted mt-2">下载：<a href="https://ollama.com/download" target="_blank" style="color:var(--accent)">ollama.com</a> → 安装后运行: ollama pull qwen2.5:7b</p></div>')+'<button class="btn btn-primary btn-block" onclick="handleApiKey()">开始使用</button><p class="text-muted mt-4">🔒 Key仅存在浏览器本地，不经过任何服务器</p></div></div>';
+}
+function renderProblem(){
+  var problems=[{key:"被辞退",title:"被辞退 / 被开除",desc:"被公司辞退、开除、劝退，不给补偿",icon:"🚫"},{key:"拖欠工资",title:"拖欠 / 克扣工资",desc:"被欠薪、少发工资、不按时发工资",icon:"💰"},{key:"想离职",title:"想离职 / 被迫离职",desc:"公司逼你走、调岗降薪、协商解除",icon:"🚶"},{key:"其他问题",title:"其他劳动问题",desc:"加班费、工伤、社保、竞业限制、年假等",icon:"❓"}];
+  var html='<div class="card mb-3"><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-weight:700;font-size:15px">遇到了什么问题？</span><span class="tag-green" style="cursor:pointer" onclick="state.step=0;render()">🔑 换Key</span></div></div><div class="space-y-2">';
+  for(var i=0;i<problems.length;i++){
+    var p=problems[i];var sel=state.problemType===p.key;
+    html+='<div class="problem-card'+(sel?" selected":"")+'" onclick="selectProblem(\''+p.key+'\')"><div class="check">'+(sel?"✓":"")+'</div><span style="font-size:32px">'+p.icon+'</span><div style="flex:1"><div style="font-weight:600;font-size:14px">'+p.title+'</div><div class="text-muted">'+p.desc+'</div></div></div>';
+  }
+  html+='</div><button id="next-btn" class="btn btn-primary btn-block mt-4"'+(state.problemType?"":" disabled")+' onclick="goForm()" style="'+(state.problemType?"":"opacity:0.5")+'">下一步：填写信息</button>';
+  app.innerHTML=html;
+}
+function renderForm(){
+  var labels={companyName:"公司全称",city:"工作城市",hireDate:"入职日期",monthlySalary:"月薪（元）",description:"详细描述你的情况"};
+  var html='<div class="card mb-3"><div style="display:flex;align-items:center;gap:12px"><span style="background:var(--accent);color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0">'+(state.problemType==="被辞退"?"🚫":state.problemType==="拖欠工资"?"💰":state.problemType==="想离职"?"🚶":"❓")+'</span><span style="font-weight:700;font-size:15px">'+state.problemType+'</span><span class="text-muted" style="cursor:pointer;margin-left:auto" onclick="state.step=1;render()">← 重选</span></div></div><div class="card"><div class="text-muted mb-3">📝 填写基本信息（越详细，AI分析越准确）</div>';
+  var keys=Object.keys(labels);
+  for(var i=0;i<keys.length;i++){
+    var k=keys[i];var req=k==="companyName"||k==="monthlySalary"?" *":"";
+    html+='<div class="mb-3"><label class="label">'+labels[k]+req+'</label>';
+    if(k==="description"){
+      html+='<textarea id="form-'+k+'" class="input" rows="4" placeholder="例如：公司在2024年3月突然通知我不用来上班了，没有给任何书面通知，也没给补偿...">'+escHtml(state.form[k]||"")+'</textarea>';
+    }else{
+      html+='<input id="form-'+k+'" class="input" type="'+(k==="hireDate"?"date":"text")+'" value="'+escHtml(state.form[k]||"")+'" placeholder="'+(k==="hireDate"?"":k==="city"?"例如：深圳":"例如：XX科技有限公司")+'">';
+    }
+    html+='</div>';
+  }
+  html+='<button class="btn btn-primary btn-block" onclick="startAnalysis()">🤖 开始AI分析</button></div>';
+  app.innerHTML=html;
+}
+
+function renderLoading(){
+  var steps=["案件分析","违法识别","赔偿计算","文书起草","证据清单","仲裁指导"];
+  var done=state.results.length;
+  var dots="";for(var i=0;i<steps.length;i++){dots+='<div class="step-dot'+(i<done?" done":"")+(i===done&&state.streaming?" active":"")+'" style="flex-shrink:0"></div>';if(i<steps.length-1)dots+='<div class="step-line'+(i<done?" done":"")+'" style="flex:1;max-width:30px"></div>'}
+  var labels="";for(var i=0;i<steps.length;i++){labels+='<span style="margin:0 4px;'+(i<done?"color:var(--success)":i===done?"color:var(--accent);font-weight:600":"")+'">'+steps[i]+'</span>';if(i<steps.length-1)labels+=" → "}
+  app.innerHTML='<div class="card text-center" style="padding:40px 20px"><div class="spinner" style="margin:0 auto 16px;width:32px;height:32px"></div><div style="font-weight:700;font-size:16px;margin-bottom:4px">AI 正在分析你的案件...</div><div class="text-muted mb-4">'+(done<steps.length?steps[done]:"整理结果中")+'</div><div style="display:flex;align-items:center;justify-content:center;gap:4px;max-width:300px;margin:0 auto">'+dots+'</div><div class="text-xs text-muted mt-3">'+labels+'</div></div>';
+}
+
+function renderResults(){
+  var html='<div class="card mb-3"><div style="display:flex;align-items:center;gap:8px"><span>✅</span><span style="font-weight:700;font-size:15px">分析完成</span><span class="text-muted" style="margin-left:auto">'+state.problemType+'</span></div></div><div class="space-y-2">';
+  for(var i=0;i<state.results.length;i++){var r=state.results[i];html+='<div class="agent-msg"><h3>📋 '+r.agentName+'</h3>'+formatMarkdown(r.content)+'</div>'}
+  html+='</div><div class="flex gap-2 mt-4" style="flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="downloadResults()">📥 下载报告</button><button class="btn btn-secondary btn-sm" onclick="copyResults()">📋 复制全部</button><button class="btn btn-primary btn-sm" onclick="resetAll()">🔄 重新分析</button></div><p class="text-muted text-center mt-4">⚠️ 本工具提供法律辅助，不替代专业律师。复杂案件请咨询执业律师。</p>';
+  app.innerHTML=html;
+}
+/* ==================== 辅助函数 ==================== */
+function formatMarkdown(md){
+  return md.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/### (.+)/g,"<h4>$1</h4>").replace(/## (.+)/g,"<h3>$1</h3>")
+    .replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>")
+    .replace(/- (.+)/g,"<li>$1</li>").replace(/(<li>.*<\/li>\n?)+/g,"<ul>$&</ul>")
+    .replace(/\|(.+)\|/g,function(m){var cells=m.split("|").filter(function(c){return c.trim()}).map(function(c){return "<td>"+c.trim()+"</td>"}).join("");return "<tr>"+cells+"</tr>"})
+    .replace(/(<tr>.*<\/tr>\n?)+/g,"<table>$&</table>").replace(/\n/g,"<br>");
+}
+
+function escHtml(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+
+function estimateMonths(d){if(!d)return 12;var s=new Date(d);var n=new Date();return Math.max(1,Math.floor((n-s)/(1000*60*60*24*30.44)))}
+
+/* ==================== 操作 ==================== */
+function handleApiKey(){
+  var sel=document.getElementById("provider-select");var provId=sel.value;
+  var presets={deepseek:{url:"https://api.deepseek.com/v1/chat/completions",model:"deepseek-chat"},openai:{url:"https://api.openai.com/v1/chat/completions",model:"gpt-4o-mini"},qwen:{url:"https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",model:"qwen-plus"},glm:{url:"https://open.bigmodel.cn/api/paas/v4/chat/completions",model:"glm-4-flash"},ollama:{url:"http://localhost:11434/v1/chat/completions",model:"qwen2.5:7b"},custom:{url:"",model:""}};
+  state.provider=provId;
+  if(provId==="ollama"){state.apiKey="ollama";state.baseUrl=presets.ollama.url;state.model=presets.ollama.model}
+  else if(provId==="custom"){
+    var bu=document.getElementById("baseurl-input");var mi=document.getElementById("model-input");
+    state.baseUrl=bu.value.trim();state.model=mi.value.trim();
+    if(!state.baseUrl){toast("请填写API地址","err");return}
+    var inp=document.getElementById("apikey-input");state.apiKey=inp.value.trim();
+  }else{
+    var inp2=document.getElementById("apikey-input");var key=inp2.value.trim();
+    if(!key){toast("请填写API Key","err");return}
+    state.apiKey=key;state.baseUrl=presets[provId].url;state.model=presets[provId].model;
+  }
+  saveSettings();toast("设置已保存 \u2713");state.step=1;render();
+}
+
+window.handleApiKey=handleApiKey;
+
+function onProviderChange(){
+  var sel=document.getElementById("provider-select");state.provider=sel.value;render();
+}
+window.onProviderChange=onProviderChange;
+
+function selectProblem(key){
+  state.problemType=key;render();
+}
+window.selectProblem=selectProblem;
+
+function goForm(){if(!state.problemType){toast("请先选择问题类型","err");return}state.step=2;render()}
+window.goForm=goForm;
+
+function resetAll(){state.step=1;state.problemType="";state.form={companyName:"",city:"",hireDate:"",monthlySalary:"",description:""};state.results=[];render()}
+window.resetAll=resetAll;
+
+async function startAnalysis(){
+  var fields=["companyName","city","hireDate","monthlySalary","description"];
+  for(var i=0;i<fields.length;i++){var el=document.getElementById("form-"+fields[i]);if(el)state.form[fields[i]]=el.value.trim()}
+  if(!state.form.companyName){toast("请填写公司全称","err");return}
+  state.step=3;state.results=[];state.streaming=true;render();
+
+  var userMsg="【问题类型】："+state.problemType+"\n【公司名称】："+state.form.companyName+"\n【工作城市】："+state.form.city+"\n【入职日期】："+state.form.hireDate+"\n【月薪】："+state.form.monthlySalary+"元\n【详细描述】："+state.form.description;
+  var laws=getLawText();
+  var profile={companyName:state.form.companyName,city:state.form.city,hireDate:state.form.hireDate,monthlySalary:parseInt(state.form.monthlySalary)||0,workMonths:estimateMonths(state.form.hireDate)};
+  var order=["case_analysis","violation_detect","compensation","document_draft","evidence","arbitration"];
+
+  for(var i=0;i<order.length;i++){
+    var ag=AGENTS[order[i]];var prompt=ag.prompt(laws,profile);var content="";
+    try{
+      await callLLM(prompt,userMsg,function(c){content+=c});
+      state.results.push({agentName:ag.name,content:content||"（AI未返回内容，请重试）"});
+    }catch(e){
+      state.results.push({agentName:ag.name,content:"❌ 分析失败："+e.message+"\n\n> 可能原因：API Key无效、余额不足、或网络问题。请检查后重试。"});
+    }
+    render();
+  }
+  state.streaming=false;state.step=4;render();
+}
+window.startAnalysis=startAnalysis;
+
+function downloadResults(){
+  var text="劳动法维权助手 — AI分析报告\n"+"=".repeat(40)+"\n\n";
+  text+="问题类型: "+state.problemType+"\n公司: "+state.form.companyName+"\n城市: "+state.form.city+"\n入职: "+state.form.hireDate+"\n月薪: ¥"+state.form.monthlySalary+"\n描述: "+state.form.description+"\n\n";
+  text+="=".repeat(40)+"\n\n";
+  for(var i=0;i<state.results.length;i++){text+="【"+state.results[i].agentName+"】\n"+state.results[i].content+"\n\n"+"=".repeat(40)+"\n\n"}
+  text+="\n⚠️ 免责声明：本报告由AI生成，不替代专业律师意见。复杂案件请咨询执业律师。\n";
+  var blob=new Blob([text],{type:"text/plain;charset=utf-8"});
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="劳动法分析报告_"+new Date().toISOString().slice(0,10)+".txt";a.click();
+  toast("报告已下载 ✓");
+}
+window.downloadResults=downloadResults;
+
+function copyResults(){
+  var text="";for(var i=0;i<state.results.length;i++){text+="【"+state.results[i].agentName+"】\n"+state.results[i].content+"\n\n"}
+  navigator.clipboard.writeText(text).then(function(){toast("已复制到剪贴板 ✓")}).catch(function(){toast("复制失败","err")});
+}
+window.copyResults=copyResults;
+
+/* ==================== 初始化 ==================== */
+loadSettings();render();
+</script>
+</body>
+</html>
